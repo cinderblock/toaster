@@ -1,0 +1,29 @@
+{
+  "name": "toaster",
+  "private": true,
+  "version": "0.0.0",
+  "description": "A simple web dashboard for my SMT reflow oven (T-962 + Raspberry Pi)",
+  "main": "main.js",
+  "scripts": {
+    "start": "rdt dev"
+  },
+  "type": "module",
+  "keywords": [
+    "dashboard"
+  ],
+  "author": "Cameron Tacklind <cameron@tacklind.com> (https://github.com/cinderblock)",
+  "license": "ISC",
+  "devDependencies": {
+    "@cinderblock/rdt": "^0.3.1",
+    "@types/ssh2": "^1.11.8",
+    "@types/ssh2-streams": "^0.1.9",
+    "@typescript-eslint/eslint-plugin": "^5.56.0",
+    "cspell": "^6.30.2",
+    "eslint": "^8.36.0",
+    "prettier": "^2.8.5",
+    "typescript": "^4.9.5"
+  },
+  "dependencies": {
+    "serialport": "^10.5.0"
+  }
+}
