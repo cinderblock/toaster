@@ -98,15 +98,13 @@ const handler: BuildAndDeploy = {
   },
 };
 
-logger.info('HELLO! 🟢🟢🟢🟢');
+export const defaultTarget = 'hotpi';
 
-export const defaultTarget = 'hdpi';
-
-const hdpi: Target = {
+const hotpi: Target = {
   handler,
   devServer: 'src/ui/index.ts',
   remote: {
-    host: 'hdpi.tsl',
+    host: 'hotpi.tsl',
     username: 'pi',
   },
   watch: {
@@ -117,5 +115,5 @@ const hdpi: Target = {
 };
 
 export const targets: Targets = {
-  hdpi,
+  hotpi,
 };
