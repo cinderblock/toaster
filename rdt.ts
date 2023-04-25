@@ -1,21 +1,45 @@
 import { Target, logger, BuildAndDeploy, Targets } from '@cinderblock/rdt';
 import { transform, TransformOptions } from 'esbuild';
 import { readFile } from 'fs/promises';
+import { Client } from 'ssh2';
+import { SFTP } from 'ssh2/lib/protocol/SFTP';
 
 function posixPath(path: string) {
   return path.replace(/\\/g, '/');
 }
 
+const remoteDir = 'toaster';
+
 const handler: BuildAndDeploy = {
   async onConnected({ rdt }) {
     const { targetName, targetConfig, connection } = rdt;
-    logger.info(`connected to: ${targetName} [${targetConfig.remote?.host}]`);
+
+    if (!targetConfig.remote) {
+      throw new Error(`No remote config for target: ${targetName}`);
+    }
+
+    logger.info(`connected to: ${targetName} [${targetConfig.remote.host}]`);
+
+    // const conn = new Client();
+    // conn.on('ready', () => {
+    //   logger.info(`SSH ready`);
+    //   const s = new SFTP(conn);
+    //   conn.sftp((err, sftp) => {});
+    // });
+    // conn.connect(targetConfig.remote);
 
     // Setup dependencies on remote that are required to run the app
-    await rdt.apt.update();
-    await rdt.apt.install(['git']);
 
-    await rdt.node.install();
+    const lock = await rdt.reduceWork.checkAndGetLock('apt-packages');
+    if (lock) {
+      await rdt.apt.update();
+      await rdt.apt.install(['git']);
+
+      await rdt.node.install();
+      lock();
+    } else {
+      logger.info(`Skipping apt update/install since it was already done recently`);
+    }
 
     await rdt.systemd.service.setup(
       'toaster',
@@ -24,7 +48,7 @@ const handler: BuildAndDeploy = {
           Description: 'Toaster Daemon',
         },
         Service: {
-          ExecStart: '/usr/bin/node /home/pi/toaster',
+          ExecStart: `/usr/bin/node /home/pi/${remoteDir}`,
         },
         Install: {
           WantedBy: 'multi-user.target',
@@ -49,8 +73,23 @@ const handler: BuildAndDeploy = {
       return;
     }
 
+    if (localPathSanitized == 'package.json') {
+      const pack = await readFile('package.json').then(b => JSON.parse(b.toString()));
+
+      logger.debug('Read package.json');
+      logger.debug(pack);
+
+      const outFile = remoteDir + '/package.json';
+
+      // Don't install devDependencies on remote
+      delete pack.devDependencies;
+
+      await rdt.fs.ensureFileIs(outFile, JSON.stringify(pack, null, 2));
+      return outFile;
+    }
+
     if (localPathSanitized.match(/\.tsx?$/)) {
-      const remotePath = 'rdt/' + localPathSanitized.replace(/\.tsx?$/, '.js');
+      const remotePath = remoteDir + '/' + localPathSanitized.replace(/\.tsx?$/, '.js');
 
       const opts: TransformOptions = {
         loader: 'ts',
@@ -71,7 +110,8 @@ const handler: BuildAndDeploy = {
       await rdt.fs.ensureFileIs(remotePath, code);
 
       logger.info(`deployed: ${localPathSanitized} -> ${remotePath} bytes: ${code.length}`);
-      return { changedFiles: [remotePath] };
+
+      return remotePath;
     }
 
     // No changes
@@ -90,7 +130,7 @@ const handler: BuildAndDeploy = {
 
     const tasks: Promise<unknown>[] = [];
 
-    if (changedFiles.includes('package.json')) tasks.push(connection.exec('npm install'));
+    if (changedFiles.includes(remoteDir + '/package.json')) tasks.push(rdt.run('npm install'));
 
     await Promise.all(tasks);
 
