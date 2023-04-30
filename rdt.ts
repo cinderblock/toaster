@@ -60,7 +60,6 @@ const handler: BuildAndDeploy = {
         },
       },
       {
-        userService: false,
       },
     );
 
