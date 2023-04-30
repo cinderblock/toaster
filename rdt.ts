@@ -33,7 +33,11 @@ const handler: BuildAndDeploy = {
     const lock = await rdt.reduceWork.checkAndGetLock('apt-packages');
     if (lock) {
       await rdt.apt.update();
-      await rdt.apt.install(['git']);
+      await rdt.apt.install(['git', 'libpigpio-dev']);
+
+      // Workaround https://github.com/fivdi/pigpio/issues/136
+      await rdt.apt.remove(['pigpiod']);
+      await rdt.run('ln -snf /usr/bin/false /usr/local/bin/pigpiod');
 
       await rdt.node.install();
       lock();
