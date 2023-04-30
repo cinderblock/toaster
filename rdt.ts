@@ -64,6 +64,8 @@ const handler: BuildAndDeploy = {
       },
     );
 
+    rdt.systemd.journal.follow('toaster');
+
     logger.info(`Done with onConnected`);
   },
 
