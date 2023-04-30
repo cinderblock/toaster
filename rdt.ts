@@ -1,8 +1,6 @@
-import { Target, logger, BuildAndDeploy, Targets } from '@cinderblock/rdt';
+import { Target, logger, BuildAndDeploy, Targets, SerialPortMode } from '@cinderblock/rdt';
 import { transform, TransformOptions } from 'esbuild';
 import { readFile } from 'fs/promises';
-import { Client } from 'ssh2';
-import { SFTP } from 'ssh2/lib/protocol/SFTP';
 
 function posixPath(path: string) {
   return path.replace(/\\/g, '/');
@@ -43,6 +41,25 @@ const handler: BuildAndDeploy = {
       lock();
     } else {
       logger.info(`Skipping apt update/install since it was already done recently`);
+    }
+
+    // Set correct serial port mode
+    if ((await rdt.fs.readFile('/boot/cmdline.txt'))?.toString().includes('console=serial0')) {
+      // Before settings:
+      // /dev/serial1 -> ttyAMA0
+      // /boot/cmdline.txt includes console=serial0,115200
+
+      await rdt.raspberryPi.config.setSerialPortMode(SerialPortMode.serial);
+      await rdt.run('reboot', [], { sudo: true });
+
+      // After settings:
+      // /dev/serial0 -> ttyS0
+      // /dev/serial1 -> ttyAMA0
+      // /boot/cmdline.txt doesn't include console=serial0,115200
+
+      return;
+
+      // TODO: Test/handle reboot gracefully and reconnect
     }
 
     await rdt.systemd.service.setup(
