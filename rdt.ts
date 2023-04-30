@@ -135,7 +135,8 @@ const handler: BuildAndDeploy = {
 
     const tasks: Promise<unknown>[] = [];
 
-    if (changedFiles.includes(remoteDir + '/package.json')) tasks.push(rdt.run('npm install'));
+    if (changedFiles.includes(remoteDir + '/package.json'))
+      tasks.push(rdt.run('npm install', [], { workingDirectory: remoteDir }));
 
     await Promise.all(tasks);
 
