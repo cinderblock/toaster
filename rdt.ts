@@ -143,6 +143,7 @@ const handler: BuildAndDeploy = {
     await Promise.all(tasks);
 
     // TODO: Restart app
+    await rdt.systemd.service.restart('toaster');
   },
 };
 
