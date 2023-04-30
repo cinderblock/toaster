@@ -48,7 +48,8 @@ const handler: BuildAndDeploy = {
           Description: 'Toaster Daemon',
         },
         Service: {
-          ExecStart: `/usr/bin/node /home/pi/${remoteDir}`,
+          // TODO: get `/usr/local/bin/node` from `which node`
+          ExecStart: `/usr/local/bin/node /home/pi/${remoteDir}`,
         },
         Install: {
           WantedBy: 'multi-user.target',

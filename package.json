@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "description": "A simple web dashboard for my SMT reflow oven (T-962 + Raspberry Pi)",
-  "main": "main.js",
+  "main": "src/main.js",
   "scripts": {
     "start": "rdt dev"
   },
