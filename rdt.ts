@@ -82,7 +82,14 @@ const handler: BuildAndDeploy = {
       },
     );
 
-    rdt.systemd.journal.follow(serviceName);
+    rdt.systemd.journal
+      .follow(serviceName)
+      .catch(e => {
+        logger.error(`Failed to follow journal: ${e.message}`);
+      })
+      .then(() => {
+        logger.info(`Done following?`);
+      });
 
     rdt.forward.toRemoteTarget('127.0.0.1', 9229);
 
