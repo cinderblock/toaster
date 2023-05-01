@@ -7,6 +7,7 @@ function posixPath(path: string) {
 }
 
 const remoteDir = 'toaster';
+const serviceName = 'toaster';
 
 const handler: BuildAndDeploy = {
   async onConnected({ rdt }) {
@@ -62,8 +63,9 @@ const handler: BuildAndDeploy = {
       // TODO: Test/handle reboot gracefully and reconnect
     }
 
+
     await rdt.systemd.service.setup(
-      'toaster',
+      serviceName,
       {
         Unit: {
           Description: 'Toaster Daemon',
@@ -80,7 +82,7 @@ const handler: BuildAndDeploy = {
       },
     );
 
-    rdt.systemd.journal.follow('toaster');
+    rdt.systemd.journal.follow(serviceName);
 
     rdt.forward.toRemoteTarget('127.0.0.1', 9229);
 
@@ -161,7 +163,7 @@ const handler: BuildAndDeploy = {
     await Promise.all(tasks);
 
     // TODO: Restart app
-    await rdt.systemd.service.restart('toaster');
+    await rdt.systemd.service.restart(serviceName);
   },
 };
 
