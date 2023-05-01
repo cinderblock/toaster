@@ -71,7 +71,7 @@ const handler: BuildAndDeploy = {
         },
         Service: {
           // TODO: get `/usr/local/bin/node` from `which node`
-          ExecStart: `/usr/local/bin/node /home/pi/${remoteDir}`,
+          ExecStart: `/usr/local/bin/node --enable-source-maps /home/pi/${remoteDir}`,
         },
         Install: {
           WantedBy: 'multi-user.target',
@@ -138,13 +138,23 @@ const handler: BuildAndDeploy = {
         opts.target = 'esnext';
       }
 
-      const { code } = await transform(await readFile(localPath), opts);
+      const { code, map } = await transform(await readFile(localPath), opts);
 
-      await rdt.fs.ensureFileIs(remotePath, code);
+      const changedFiles: string[] = [];
 
-      logger.info(`deployed: ${localPathSanitized} -> ${remotePath} bytes: ${code.length}`);
+      const remoteMap = remotePath + '.map';
 
-      return remotePath;
+      await Promise.all(
+        [
+          [remotePath, code],
+          [remoteMap, map],
+        ].map(async ([path, str]) => {
+          if (await rdt.fs.ensureFileIs(path, str)) changedFiles.push(path);
+          logger.info(`deployed: ${path} bytes: ${str.length}`);
+        }),
+      );
+
+      return { changedFiles };
     }
 
     // No changes
