@@ -63,7 +63,6 @@ const handler: BuildAndDeploy = {
       // TODO: Test/handle reboot gracefully and reconnect
     }
 
-
     await rdt.systemd.service.setup(
       serviceName,
       {
@@ -78,8 +77,7 @@ const handler: BuildAndDeploy = {
           WantedBy: 'multi-user.target',
         },
       },
-      {
-      },
+      {},
     );
 
     rdt.systemd.journal
