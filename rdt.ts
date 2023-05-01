@@ -82,6 +82,8 @@ const handler: BuildAndDeploy = {
 
     rdt.systemd.journal.follow('toaster');
 
+    rdt.forward.toRemoteTarget('127.0.0.1', 9229);
+
     logger.info(`Done with onConnected`);
   },
 
