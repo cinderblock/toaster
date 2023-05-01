@@ -10,8 +10,10 @@
       "address": "localhost",
       "port": 9229,
 
-      "localRoot": "${workspaceFolder}/src",
-      "remoteRoot": "toaster/src"
+      "smartStep": true,
+
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/home/pi/toaster"
       // "skipFiles": [
       //   "<node_internals>/**"
       // ],

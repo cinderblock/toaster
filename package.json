@@ -14,7 +14,7 @@
   "author": "Cameron Tacklind <cameron@tacklind.com> (https://github.com/cinderblock)",
   "license": "ISC",
   "devDependencies": {
-    "@cinderblock/rdt": "^0.3.1",
+    "@cinderblock/rdt": "^0.4.0",
     "@types/ssh2": "^1.11.8",
     "@types/ssh2-streams": "^0.1.9",
     "@typescript-eslint/eslint-plugin": "^5.56.0",

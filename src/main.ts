@@ -20,9 +20,11 @@ console.log('Dashboard main');
 port.write('values\n');
 
 async function main() {
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  while (true) {
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
-  console.log('alive!');
+    console.log('alive!');
+  }
 }
 
 main();

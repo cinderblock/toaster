@@ -8,6 +8,7 @@ function posixPath(path: string) {
 
 const remoteDir = 'toaster';
 const serviceName = 'toaster';
+const inspector = true;
 
 const handler: BuildAndDeploy = {
   async onConnected({ rdt }) {
@@ -89,7 +90,13 @@ const handler: BuildAndDeploy = {
         logger.info(`Done following?`);
       });
 
-    rdt.forward.toRemoteTarget('127.0.0.1', 9229);
+    if (inspector) {
+      await rdt.systemd.service.stop(serviceName);
+      rdt.forward
+        .toRemoteTarget(9229)
+        .catch(e => logger.error(`Failed to forward port 9229 to remote target: ${e.message}`))
+        .then(() => logger.info(`Done forwarding?`));
+    }
 
     logger.info(`Done with onConnected`);
   },
@@ -180,6 +187,11 @@ const handler: BuildAndDeploy = {
 
     // TODO: Restart app
     await rdt.systemd.service.restart(serviceName);
+
+    if (inspector) {
+      const pid = await rdt.systemd.service.show(serviceName, 'MainPID');
+      await rdt.run('kill -SIGUSR1', [pid], { sudo: true });
+    }
   },
 };
 
