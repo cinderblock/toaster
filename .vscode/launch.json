@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to remote toaster app",
+
+      // We use SSH port forwarding so that this configuration is universal
+      "address": "localhost",
+      "port": 9229,
+
+      "localRoot": "${workspaceFolder}/src",
+      "remoteRoot": "toaster/src"
+      // "skipFiles": [
+      //   "<node_internals>/**"
+      // ],
+      // "outFiles": [
+      //   "${workspaceFolder}/**/*.js"
+      // ]
+    }
+  ]
+}
