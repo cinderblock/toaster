@@ -116,8 +116,9 @@ const handler: BuildAndDeploy = {
       // Don't install devDependencies on remote
       delete pack.devDependencies;
 
-      await rdt.fs.ensureFileIs(outFile, JSON.stringify(pack, null, 2));
-      return outFile;
+      const change = await rdt.fs.ensureFileIs(outFile, JSON.stringify(pack, null, 2));
+
+      return change ? outFile : undefined;
     }
 
     if (localPathSanitized.match(/\.tsx?$/)) {
