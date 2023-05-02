@@ -39,7 +39,6 @@ const handler: BuildAndDeploy = {
       await rdt.apt.remove(['pigpiod']);
       await rdt.run('ln -snf /usr/bin/false /usr/local/bin/pigpiod');
 
-      await rdt.node.install();
       lock();
     } else {
       logger.info(`Skipping apt update/install since it was already done recently`);
@@ -64,6 +63,18 @@ const handler: BuildAndDeploy = {
       // TODO: Test/handle reboot gracefully and reconnect
     }
 
+    let bin = await rdt.node.getPath();
+
+    if (!bin) {
+      await rdt.node.install();
+      bin = await rdt.node.getPath();
+      if (!bin) throw new Error(`Failed to install node`);
+    }
+
+    const execStart = [bin];
+
+    execStart.push(`/home/pi/${remoteDir}`);
+
     await rdt.systemd.service.setup(
       serviceName,
       {
@@ -71,8 +82,7 @@ const handler: BuildAndDeploy = {
           Description: 'Toaster Daemon',
         },
         Service: {
-          // TODO: get `/usr/local/bin/node` from `which node`
-          ExecStart: `/usr/local/bin/node --enable-source-maps /home/pi/${remoteDir}`,
+          ExecStart: execStart.join(' '),
         },
         Install: {
           WantedBy: 'multi-user.target',
