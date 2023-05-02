@@ -12,14 +12,18 @@
 
       "smartStep": true,
 
+      "sourceMaps": true,
+
       "localRoot": "${workspaceFolder}",
-      "remoteRoot": "/home/pi/toaster"
+      "remoteRoot": "/home/pi/toaster",
+
       // "skipFiles": [
       //   "<node_internals>/**"
       // ],
-      // "outFiles": [
-      //   "${workspaceFolder}/**/*.js"
-      // ]
+      "outFiles": [
+        // "${workspaceFolder}/.build/**/*",
+        "${workspaceFolder}/src/**/*"
+      ]
     }
   ]
 }
