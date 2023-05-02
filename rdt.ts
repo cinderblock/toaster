@@ -73,6 +73,8 @@ const handler: BuildAndDeploy = {
 
     const execStart = [bin];
 
+    // execStart.push('--enable-source-maps');
+
     execStart.push(`/home/pi/${remoteDir}`);
 
     await rdt.systemd.service.setup(
@@ -144,7 +146,9 @@ const handler: BuildAndDeploy = {
       const opts: TransformOptions = {
         loader: 'ts',
         target: 'es2019',
-        sourcemap: true,
+        sourcemap: 'inline',
+        sourcefile: localPathSanitized.replace(/^.*\//, ''),
+        sourcesContent: false,
       };
 
       if (localPathSanitized.startsWith('src/ui/')) {
@@ -159,13 +163,12 @@ const handler: BuildAndDeploy = {
 
       const changedFiles: string[] = [];
 
-      const remoteMap = remotePath + '.map';
-
       await Promise.all(
         [
           [remotePath, code],
-          [remoteMap, map],
+          // [remotePath + '.map', map],
         ].map(async ([path, str]) => {
+          // await writeFile('.build/' + path, str);
           if (await rdt.fs.ensureFileIs(path, str)) changedFiles.push(path);
           logger.info(`deployed: ${path} bytes: ${str.length}`);
         }),
