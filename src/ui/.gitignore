@@ -1,5 +1,4 @@
 public/app.js
-public/out.js
-public/*.js
+public/app.css
 
 node_modules
