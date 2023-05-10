@@ -218,7 +218,7 @@ export const defaultTarget = 'hotpi';
 const hotpi: Target = {
   handler,
   devServer: {
-    entry: 'src/ui/app.tsx',
+    entry: 'src/ui/index.tsx',
     serveLocal: true,
   },
   remote: {
