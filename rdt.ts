@@ -6,9 +6,14 @@ function posixPath(path: string) {
   return path.replace(/\\/g, '/');
 }
 
+// TODO: use config.remote.path instead
 const remoteDir = 'toaster';
+
+// name of systemd service
 const serviceName = 'toaster';
-const inspector = true;
+
+// Control enabling of inspector on remote main process
+const inspector = false;
 
 const handler: BuildAndDeploy = {
   async onConnected({ rdt }) {
@@ -212,10 +217,14 @@ export const defaultTarget = 'hotpi';
 
 const hotpi: Target = {
   handler,
-  devServer: 'src/ui/index.ts',
+  devServer: {
+    entry: 'src/ui/app.tsx',
+    serveLocal: true,
+  },
   remote: {
     host: 'hotpi.tsl',
     username: 'pi',
+    path: '/home/pi/toaster',
   },
   watch: {
     options: {
