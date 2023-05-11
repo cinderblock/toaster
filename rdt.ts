@@ -15,6 +15,9 @@ const serviceName = 'toaster';
 // Control enabling of inspector on remote main process
 const inspector = false;
 
+// Marker
+let forceInstallOnce = false;
+
 const handler: BuildAndDeploy = {
   async onConnected({ rdt }) {
     const { targetName, targetConfig, connection } = rdt;
@@ -194,8 +197,9 @@ const handler: BuildAndDeploy = {
 
     const tasks: Promise<unknown>[] = [];
 
-    if (changedFiles.includes(remoteDir + '/package.json'))
-      tasks.push(rdt.run('npm install', [], { workingDirectory: remoteDir }));
+    if (forceInstallOnce || changedFiles.includes(remoteDir + '/package.json')) {
+      tasks.push(rdt.run('npm install', [], { workingDirectory: remoteDir }).then(() => (forceInstallOnce = false)));
+    }
 
     await Promise.all(tasks);
 
