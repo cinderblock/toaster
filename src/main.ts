@@ -5,7 +5,7 @@ import { Gpio } from 'pigpio';
 
 const path = '/dev/serial0';
 
-const piUART: 0 | 1 = 0;
+const piUART: 0 | 1 = 1;
 
 const pinUartMode = piUART ? Gpio.ALT5 : Gpio.ALT0;
 
