@@ -128,6 +128,11 @@ const handler: BuildAndDeploy = {
       return;
     }
 
+    if (localPathSanitized.startsWith('docs/')) {
+      // Skipping docs
+      return;
+    }
+
     if (localPathSanitized == 'package.json') {
       const pack = await readFile('package.json').then(b => JSON.parse(b.toString()));
 
