@@ -267,21 +267,47 @@ main().catch(err => {
   process.exitCode = 1;
 });
 
-//    0.0,   31.5,  44.2,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY
-//    0.0,   31.5,  44.1,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY
-//    0.0,   31.5,  44.1,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY
-//    0.0,   31.5,  44.1,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY
-// Starting reflow with profile: CUSTOM #2
-// # Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode
-//    0.0,   31.5,  43.9,   0.0,   0.0,   35,  37.7,    0, 255,   31.5, REFLOW
-// Reflow interrupted by keypress
-// # Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode
-//    0.0,   31.5,  44.1,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY
-//    0.0,   31.5,  44.1,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY
-//    0.0,   31.5,  44.1,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY
-//    0.0,   31.5,  44.2,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY
-//    0.0,   31.0,  43.7,   0.0,   0.0,   50,  37.3,    0,   0,   31.0, STANDBY
-
-// T-962-controller open source firmware (v0.5.1)
-// See https://github.com/UnifiedEngineering/T-962-improvement for more details.
-// Initializing improved reflow oven...
+// Example output lines from v0.5.2
+/*
+See https://github.com/UnifiedEngineering/T-962-improvement for more details.
+Initializing improved reflow oven...
+Reset reason(s): [EXTR]
+Running on an LPC2134(/01) rev F
+Waiting for keys to be released... Done!
+Buzzer_Init
+ADC_Init called
+OneWire_Init called
+Scanning 1-wire bus...
+ Found e800000531213428 [DS18B20 Temperature sensor]
+SPI_TC_Init called
+SC18IS602B_Init - No chip found
+ bake setpoint values: 0, 1e, 30
+SystemFan_Init
+ bake setpoint values: 0, 1e, 30
+T-962-controller open source firmware (v0.5.2)
+See https://github.com/UnifiedEngineering/T-962-improvement for more details.
+Initializing improved reflow oven...
+Part number: LPC2134
+EEPROM contents:
+0x0000: ff ff 00 3c 00 41 00 46 00 4b 00 52 00 5a 00 64
+0x0010: 00 73 00 82 00 91 00 a0 00 af 00 be 00 c8 00 c8
+0x0020: 00 c8 00 c8 00 c8 00 c8 00 c8 00 c8 00 c8 00 c8
+0x0030: 00 d2 00 dc 00 e6 00 f0 00 fa 01 04 01 0e 01 0e
+0x0040: 01 0e 00 fa 00 d2 00 b4 00 96 00 82 00 6e 00 5a
+0x0050: 00 46 00 32 00 28 00 1e 00 14 00 14 00 14 00 00
+0x0060: 00 00 4a 57 09 05 00 64 64 64 64 15 00 1e ff ff
+0x0070: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+0x0080: 56 57 00 23 00 2d 00 37 00 41 00 4b 00 55 00 5f
+0x0090: 00 6e 00 87 00 96 00 99 00 9c 00 9f 00 a2 00 a5
+0x00a0: 00 a8 00 ab 00 ad 00 af 00 b9 00 c3 00 cd 00 d7
+0x00b0: 00 e1 00 e6 00 eb 00 f0 00 f5 00 f5 00 f5 00 f0
+0x00c0: 00 d2 00 b9 00 96 00 78 00 64 00 50 00 3c 00 28
+0x00d0: 00 14 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0x00e0: 00 00 00 00 31 6a 00 00 3b 5d 00 00 00 11 00 00
+0x00f0: 07 6f 00 00 40 00 00 00 f6 00 00 00 07 00 58 59
+Sensor values:
+         Left: 31.0degC
+        Right: 43.4degC
+Cold junction: 31.0degC
+Toggled standby logging
+*/
