@@ -31,10 +31,10 @@ const pins = {
 
 const logger = {
   info(...args: any[]) {
-    console.log(...args);
+    // console.log(...args);
   },
   warn(...args: any[]) {
-    console.warn(...args);
+    // console.warn(...args);
   },
 };
 
