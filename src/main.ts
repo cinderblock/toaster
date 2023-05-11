@@ -99,7 +99,7 @@ function handleLine(line: string) {
       heat: Number(match.groups.heat),
       fan: Number(match.groups.fan),
       coldJ: Number(match.groups.coldJ),
-      mode: match.groups.mode,
+      mode: match.groups.mode as 'STANDBY' | 'REFLOW' | 'BAKE',
     });
 
     return;
