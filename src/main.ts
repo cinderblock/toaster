@@ -1,30 +1,72 @@
 import { SerialPort } from 'serialport';
 import { ReadlineParser } from '@serialport/parser-readline';
+import flasher from 'lpc-flash';
+import { Gpio } from 'pigpio';
 
-const port = new SerialPort({ path: '/dev/serial0', baudRate: 115200 });
+const path = '/dev/serial0';
 
-const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
+const piUART: 0 | 1 = 0;
 
-parser.on('data', line => {
-  if (line.startsWith('#')) {
-    console.log(line);
-    return;
-  }
+const pinUartMode = piUART ? Gpio.ALT5 : Gpio.ALT0;
 
-  console.log(line);
-});
+const programmingBaudRate = 57600;
+const programmingClockFrequency = 11059;
+const runtimeBaudRate = 115200;
 
-console.log('Dashboard main');
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-// port.write('quiet\n');
-port.write('values\n');
+const resetDuration = 100;
+
+const pins = {
+  isp: new Gpio(17, { mode: Gpio.OUTPUT }), // Yellow
+  rst: new Gpio(18, { mode: Gpio.OUTPUT }), // Orange
+  rxm: new Gpio(15, { mode: pinUartMode }), // Red
+  txm: new Gpio(14, { mode: pinUartMode }), // Brown
+};
 
 async function main() {
-  while (true) {
-    await new Promise(resolve => setTimeout(resolve, 5000));
+  const isp = new flasher.InSystemProgramming(path, programmingBaudRate, programmingClockFrequency);
 
-    console.log('alive!');
-  }
+  pins.rst.digitalWrite(0);
+  pins.isp.digitalWrite(0);
+
+  await sleep(resetDuration);
+
+  pins.rst.digitalWrite(1);
+
+  await isp.open();
+
+  await flasher.handshake(isp);
+
+  await isp.close();
+
+  pins.isp.digitalWrite(1);
+
+  pins.rst.digitalWrite(0);
+  await sleep(resetDuration);
+  pins.rst.digitalWrite(1);
+
+  console.log('Done with flasher');
+
+  const port = new SerialPort({ path, baudRate: runtimeBaudRate });
+
+  const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
+
+  parser.on('data', line => {
+    if (line.startsWith('#')) {
+      console.log(line);
+      return;
+    }
+
+    console.log(line);
+  });
+
+  console.log('Dashboard main');
+
+  // port.write('quiet\n');
+  port.write('values\n');
 }
 
 main();

@@ -25,20 +25,14 @@ const handler: BuildAndDeploy = {
 
     logger.info(`connected to: ${targetName} [${targetConfig.remote.host}]`);
 
-    // const conn = new Client();
-    // conn.on('ready', () => {
-    //   logger.info(`SSH ready`);
-    //   const s = new SFTP(conn);
-    //   conn.sftp((err, sftp) => {});
-    // });
-    // conn.connect(targetConfig.remote);
-
     // Setup dependencies on remote that are required to run the app
-
     const lock = await rdt.reduceWork.checkAndGetLock('apt-packages');
     if (lock) {
       await rdt.apt.update();
       await rdt.apt.install(['git', 'libpigpio-dev']);
+
+      // Remove bad editor
+      await rdt.apt.remove(['nano']);
 
       // Workaround https://github.com/fivdi/pigpio/issues/136
       await rdt.apt.remove(['pigpiod']);
@@ -95,7 +89,9 @@ const handler: BuildAndDeploy = {
           WantedBy: 'multi-user.target',
         },
       },
-      {},
+      {
+        // userService: false,
+      },
     );
 
     rdt.systemd.journal
@@ -203,7 +199,8 @@ const handler: BuildAndDeploy = {
 
     await Promise.all(tasks);
 
-    // TODO: Restart app
+    logger.info('Restarting app');
+
     await rdt.systemd.service.restart(serviceName);
 
     if (inspector) {

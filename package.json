@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@serialport/parser-readline": "^11.0.0",
+    "lpc-flash": "^0.0.0",
     "pigpio": "^3.3.1",
     "serialport": "^10.5.0"
   }

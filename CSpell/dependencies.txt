@@ -3,3 +3,10 @@ rdt
 
 tsbuildinfo
 codepaths
+
+Gpio
+pigpio
+pigpiod
+libpigpio
+
+xinit
