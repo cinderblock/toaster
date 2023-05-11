@@ -38,6 +38,24 @@ const logger = {
   },
 };
 
+function handleUpdate(update: {
+  time: number;
+  temp0: number;
+  temp1: number;
+  temp2: number;
+  temp3: number;
+  set: number;
+  actual: number;
+  heat: number;
+  fan: number;
+  coldJ: number;
+  mode: 'STANDBY' | 'REFLOW' | 'BAKE';
+}) {
+  // console.log(`Time: ${update.time} Set: ${update.set} Actual: ${update.actual} Heat: ${update.heat} Fan: ${update.fan} ColdJ: ${update.coldJ} Mode: ${update.mode} `);
+}
+
+let startupText = '';
+
 async function main() {
   const port = new SerialPort({ path, baudRate: runtimeBaudRate });
   const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
@@ -169,6 +187,28 @@ async function main() {
   }
 
   parser.on('data', line => {
+    const dataRegex =
+      /^\s*(?<time>[^\s,]+),\s*(?<temp0>[^\s,]+),\s*(?<temp1>[^\s,]+),\s*(?<temp2>[^\s,]+),\s*(?<temp3>[^\s,]+),\s*(?<set>[^\s,]+),\s*(?<actual>[^\s,]+),\s*(?<heat>[^\s,]+),\s*(?<fan>[^\s,]+),\s*(?<coldJ>[^\s,]+),\s*(?<mode>STANDBY|REFLOW|BAKE)$/;
+
+    const match = line.match(dataRegex);
+    if (match?.groups) {
+      handleUpdate({
+        time: Number(match.groups.time),
+        temp0: Number(match.groups.temp0),
+        temp1: Number(match.groups.temp1),
+        temp2: Number(match.groups.temp2),
+        temp3: Number(match.groups.temp3),
+        set: Number(match.groups.set),
+        actual: Number(match.groups.actual),
+        heat: Number(match.groups.heat),
+        fan: Number(match.groups.fan),
+        coldJ: Number(match.groups.coldJ),
+        mode: match.groups.mode,
+      });
+
+      return;
+    }
+
     if (line.startsWith('#')) {
       // console.log(line);
       return;
