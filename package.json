@@ -7,7 +7,7 @@
   "scripts": {
     "start": "rdt dev"
   },
-  "type": "module",
+  "type": "commonjs",
   "keywords": [
     "dashboard"
   ],
