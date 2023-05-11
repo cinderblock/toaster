@@ -43,14 +43,12 @@ async function main() {
   const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
   const isp = new flasher.InSystemProgramming(path, programmingBaudRate, programmingClockFrequency, logger);
 
-  console.log('Starting...');
+  console.log('Resetting oven to known state...');
 
   pins.rst.digitalWrite(0);
   pins.isp.digitalWrite(1);
   await sleep(resetDuration);
   pins.rst.digitalWrite(1);
-
-  console.log('Reset');
 
   // First, let's make sure we're running the latest version.
 
@@ -96,7 +94,7 @@ async function main() {
 
   // TODO: Load latest firmware from github
   if (version !== 'v0.5.2') {
-    console.log('Updating firmware...');
+    console.log('Downloading hex file...');
     const hexUrl =
       'https://github.com/UnifiedEngineering/T-962-improvements/releases/download/v0.5.2/T-962-controller.hex';
 
@@ -104,7 +102,11 @@ async function main() {
     if (!res.body) throw new Error('No body');
     if (!res.ok || res.status !== 200) throw new Error(`Bad response: ${res.status} ${res.statusText}`);
 
+    console.log('Parsing hex file...');
+
     const memMap: Map<number, Uint8Array> = MemoryMap.fromHex(await res.text());
+
+    console.log('Updating firmware...');
 
     // Put device into reset
     pins.rst.digitalWrite(0);
@@ -123,42 +125,46 @@ async function main() {
     // Connect programmer port
     await isp.open();
 
+    // Ensure we can talk to the device
     await flasher.handshake(isp);
 
-    // Flash new firmware
-
+    // Flash new firmware, one section of the hex file at a time
     for (const [address, data] of memMap.entries()) {
       await new Promise<void>(async (resolve, reject) => {
         console.log(`Downloading ${data.length} bytes to address ${address}...`);
         console.log(`First 16 bytes: ${data.slice(0, 16).join(' ')}`);
 
-        let count = 0;
         const programmer = new Programmer(isp, address, data.length);
-        programmer
-          .program(Readable.from(Buffer.from(data)))
-          .on('start', () => console.log(`About to flash new hex...`))
-          .on('chunk', buffer => {
-            count += buffer.length;
-          })
-          .on('error', reject)
-          .on('end', () => {
-            console.log(`${count} bytes written to flash`);
-            resolve();
-          });
+
+        // Error and completion
+        programmer.on('error', reject);
+        programmer.on('end', resolve);
+
+        // Progress
+        let count = 0;
+        programmer.on('start', () => console.log(`About to flash new hex...`));
+        programmer.on('chunk', buffer => (count += buffer.length));
+        programmer.on('end', () => console.log(`${count} bytes written to flash`));
+
+        // Start programming
+        programmer.program(Readable.from(data));
       });
     }
 
     // Close programmer port
     await isp.close();
 
+    // Leave bootloader
     pins.isp.digitalWrite(1);
 
+    // Reset device
     pins.rst.digitalWrite(0);
     await sleep(resetDuration);
     pins.rst.digitalWrite(1);
 
     console.log('Done with flasher');
 
+    // Re-open user port
     await new Promise<void>((resolve, reject) => port.open(err => (err ? reject(err) : resolve())));
   }
 
@@ -173,7 +179,7 @@ async function main() {
 
   console.log('Dashboard main');
 
-  await sleep(5000);
+  await sleep(1000);
 
   // port.write('quiet\n');
   port.write('values\n');
