@@ -225,7 +225,11 @@ async function main() {
   port.write('values\n');
 }
 
-main();
+main().catch(err => {
+  console.error('Error in main');
+  console.error(err);
+  process.exitCode = 1;
+});
 
 //    0.0,   31.5,  44.2,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY
 //    0.0,   31.5,  44.1,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY
