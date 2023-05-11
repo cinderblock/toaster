@@ -139,6 +139,9 @@ const handler: BuildAndDeploy = {
       // Don't install devDependencies on remote
       delete pack.devDependencies;
 
+      // Don't run scripts on remote
+      delete pack.scripts;
+
       const change = await rdt.fs.ensureFileIs(outFile, JSON.stringify(pack, null, 2));
 
       return change ? outFile : undefined;

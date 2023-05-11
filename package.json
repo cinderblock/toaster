@@ -5,6 +5,7 @@
   "description": "A simple web dashboard for my SMT reflow oven (T-962 + Raspberry Pi)",
   "main": "src/main.js",
   "scripts": {
+    "postinstall": "cd src/ui && npm install",
     "start": "rdt dev"
   },
   "type": "commonjs",
