@@ -237,7 +237,6 @@ async function main() {
     // Reset device
     pins.rst.digitalWrite(0);
     await sleep(resetDuration);
-    pins.rst.digitalWrite(1);
 
     console.log('Done with flasher');
 
@@ -247,11 +246,14 @@ async function main() {
 
   parser.on('data', handleLine);
 
+  // Pull device out of reset
+  pins.rst.digitalWrite(1);
+
   console.log('Dashboard main');
 
   await sleep(1000);
 
-  port.write('help\n');
+  // port.write('help\n');
 
   // Start printing values during standby
   port.write('quiet\n');
