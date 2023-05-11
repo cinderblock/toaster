@@ -26,7 +26,7 @@ const handler: BuildAndDeploy = {
     logger.info(`connected to: ${targetName} [${targetConfig.remote.host}]`);
 
     // Setup dependencies on remote that are required to run the app
-    const lock = await rdt.reduceWork.checkAndGetLock('apt-packages');
+    const lock = await rdt.reduceWork.checkAndGetLock('apt-packages', 24 * 7);
     if (lock) {
       await rdt.apt.update();
       await rdt.apt.install(['git', 'libpigpio-dev']);
