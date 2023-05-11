@@ -10,3 +10,5 @@ pigpiod
 libpigpio
 
 xinit
+
+fontsource
