@@ -30,6 +30,7 @@ A simple web dashboard for my SMT reflow oven (T-962 + Raspberry Pi)
 ## Hardware Connections
 
 Following the hardware improvements from [Unified Engineering](https://github.com/UnifiedEngineering/T-962-improvements), we also add a Raspberry Pi Zero W to the oven to control it.
+The `lpc-flash` library can also handle flashing the latest firmware on startup to ensure a consistent state.
 
 By adding a U.FL connector to the Pi, we can use a "U.FL to SMA adapter" to add an external antenna to the oven.
 This allows us to place the Pi inside of the oven, and still have a reliable WiFi connection.
