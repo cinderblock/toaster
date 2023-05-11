@@ -38,7 +38,10 @@ const logger = {
   },
 };
 
-function handleUpdate(update: {
+// "# Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode"
+// "   0.0,   31.5,  44.1,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY"
+type StatusUpdate = {
+  type?: undefined;
   time: number;
   temp0: number;
   temp1: number;
@@ -50,8 +53,64 @@ function handleUpdate(update: {
   fan: number;
   coldJ: number;
   mode: 'STANDBY' | 'REFLOW' | 'BAKE';
-}) {
+};
+
+// "Starting reflow with profile: CUSTOM #2"
+type StartingReflow = {
+  type: 'starting';
+  profile: string;
+};
+
+// Reflow interrupted by keypress
+type InterruptedReflow = {
+  type: 'interrupted';
+};
+
+type UpdateFromDevice = StatusUpdate | StartingReflow | InterruptedReflow;
+
+function isStatusUpdate(update: UpdateFromDevice): update is StatusUpdate {
+  return update.type === undefined;
+}
+function isStartingReflow(update: UpdateFromDevice): update is StartingReflow {
+  return update.type === 'starting';
+}
+function isInterruptedReflow(update: UpdateFromDevice): update is InterruptedReflow {
+  return update.type === 'interrupted';
+}
+
+function handleUpdate(update: UpdateFromDevice) {
   // console.log(`Time: ${update.time} Set: ${update.set} Actual: ${update.actual} Heat: ${update.heat} Fan: ${update.fan} ColdJ: ${update.coldJ} Mode: ${update.mode} `);
+}
+
+function handleLine(line: string) {
+  const dataRegex =
+    /^\s*(?<time>[^\s,]+),\s*(?<temp0>[^\s,]+),\s*(?<temp1>[^\s,]+),\s*(?<temp2>[^\s,]+),\s*(?<temp3>[^\s,]+),\s*(?<set>[^\s,]+),\s*(?<actual>[^\s,]+),\s*(?<heat>[^\s,]+),\s*(?<fan>[^\s,]+),\s*(?<coldJ>[^\s,]+),\s*(?<mode>STANDBY|REFLOW|BAKE)$/;
+
+  const match = line.match(dataRegex);
+  if (match?.groups) {
+    handleUpdate({
+      time: Number(match.groups.time),
+      temp0: Number(match.groups.temp0),
+      temp1: Number(match.groups.temp1),
+      temp2: Number(match.groups.temp2),
+      temp3: Number(match.groups.temp3),
+      set: Number(match.groups.set),
+      actual: Number(match.groups.actual),
+      heat: Number(match.groups.heat),
+      fan: Number(match.groups.fan),
+      coldJ: Number(match.groups.coldJ),
+      mode: match.groups.mode,
+    });
+
+    return;
+  }
+
+  if (line.startsWith('#')) {
+    // console.log(line);
+    return;
+  }
+
+  console.log(line);
 }
 
 let startupText = '';
@@ -186,43 +245,18 @@ async function main() {
     await new Promise<void>((resolve, reject) => port.open(err => (err ? reject(err) : resolve())));
   }
 
-  parser.on('data', line => {
-    const dataRegex =
-      /^\s*(?<time>[^\s,]+),\s*(?<temp0>[^\s,]+),\s*(?<temp1>[^\s,]+),\s*(?<temp2>[^\s,]+),\s*(?<temp3>[^\s,]+),\s*(?<set>[^\s,]+),\s*(?<actual>[^\s,]+),\s*(?<heat>[^\s,]+),\s*(?<fan>[^\s,]+),\s*(?<coldJ>[^\s,]+),\s*(?<mode>STANDBY|REFLOW|BAKE)$/;
-
-    const match = line.match(dataRegex);
-    if (match?.groups) {
-      handleUpdate({
-        time: Number(match.groups.time),
-        temp0: Number(match.groups.temp0),
-        temp1: Number(match.groups.temp1),
-        temp2: Number(match.groups.temp2),
-        temp3: Number(match.groups.temp3),
-        set: Number(match.groups.set),
-        actual: Number(match.groups.actual),
-        heat: Number(match.groups.heat),
-        fan: Number(match.groups.fan),
-        coldJ: Number(match.groups.coldJ),
-        mode: match.groups.mode,
-      });
-
-      return;
-    }
-
-    if (line.startsWith('#')) {
-      // console.log(line);
-      return;
-    }
-
-    // console.log(line);
-  });
+  parser.on('data', handleLine);
 
   console.log('Dashboard main');
 
   await sleep(1000);
 
-  // port.write('quiet\n');
-  port.write('values\n');
+  port.write('help\n');
+
+  // Start printing values during standby
+  port.write('quiet\n');
+
+  // port.write('values\n');
 }
 
 main().catch(err => {
