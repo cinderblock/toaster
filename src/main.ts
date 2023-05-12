@@ -50,7 +50,7 @@ type StartingReflow = {
   profile: string;
 };
 
-// Reflow interrupted by keypress
+// "Reflow interrupted by keypress"
 type InterruptedReflow = {
   type: 'interrupted';
 };
