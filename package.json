@@ -18,6 +18,7 @@
     "@cinderblock/rdt": "^0.4.0",
     "@types/ssh2": "^1.11.8",
     "@types/ssh2-streams": "^0.1.9",
+    "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.56.0",
     "cspell": "^6.30.2",
     "eslint": "^8.36.0",
@@ -29,6 +30,7 @@
     "lpc-flash": "^0.1.4",
     "nrf-intel-hex": "^1.3.0",
     "pigpio": "^3.3.1",
-    "serialport": "^10.5.0"
+    "serialport": "^10.5.0",
+    "ws": "^8.13.0"
   }
 }

@@ -7,6 +7,10 @@ import MemoryMap from 'nrf-intel-hex';
 import { Readable } from 'stream';
 import logger from './log';
 import { sleep } from './util/sleep';
+import WebSocket, { WebSocketServer } from 'ws';
+import { createServer } from 'http';
+import { parse } from 'url';
+import { hostname } from 'os';
 
 const path = '/dev/serial0';
 
@@ -67,6 +71,60 @@ function isInterruptedReflow(update: UpdateFromDevice): update is InterruptedRef
   if (isStatusUpdate(update)) return false;
   return update.type === 'interrupted';
 }
+
+const state: {
+  status: StatusUpdate[];
+  activeProfile: string | undefined;
+} = {
+  status: [],
+  activeProfile: undefined,
+};
+
+const server = createServer();
+
+const wss = new WebSocketServer({ noServer: true });
+
+wss.on('connection', function connection(ws) {
+  logger.info('Client connected');
+
+  ws.on('error', console.error);
+
+  ws.on('message', function message(data) {
+    console.log('received: %s', data);
+  });
+
+  logger.info('Sending initial state');
+  ws.send('something');
+});
+
+server.on('request', (req, res) => {
+  logger.info('Request', req.url);
+});
+
+server.on('upgrade', function upgrade(request, socket, head) {
+  logger.info('Upgrade', request.url);
+
+  if (request.url) {
+    const { pathname } = parse(request.url);
+
+    if (pathname === '/ws') {
+      wss.handleUpgrade(request, socket, head, function done(ws) {
+        wss.emit('connection', ws, request);
+      });
+
+      return;
+    }
+  }
+
+  socket.destroy();
+});
+
+// TODO: Server local files
+
+const port = 80;
+server.listen(port, () => {
+  logger.info(`Server listening http://${hostname()}${port === 80 ? '' : `:${port}`}`);
+});
 
 function handleUpdate(update: UpdateFromDevice) {
   if (isStatusUpdate(update)) {

@@ -114,6 +114,11 @@ const handler: BuildAndDeploy = {
         .then(() => logger.info(`Done forwarding?`));
     }
 
+    rdt.forward
+      .toRemoteTarget(80, 'localhost', 9080)
+      .catch(e => logger.error(`Failed to forward port 9080 to remote's port 80: ${e.message}`))
+      .then(() => logger.info(`Done forwarding port 9080 to remote's port 80`));
+
     logger.info(`Done with onConnected`);
   },
 
