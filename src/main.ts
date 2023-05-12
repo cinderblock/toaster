@@ -5,6 +5,7 @@ import { Programmer } from 'lpc-flash';
 import { Gpio } from 'pigpio';
 import MemoryMap from 'nrf-intel-hex';
 import { Readable } from 'stream';
+import logger from './log';
 
 const path = '/dev/serial0';
 
@@ -27,15 +28,6 @@ const pins = {
   rst: new Gpio(18, { mode: Gpio.OUTPUT }), // Orange
   rxm: new Gpio(15, { mode: pinUartMode }), // Red
   txm: new Gpio(14, { mode: pinUartMode }), // Brown
-};
-
-const logger = {
-  info(...args: any[]) {
-    // console.log(...args);
-  },
-  warn(...args: any[]) {
-    // console.warn(...args);
-  },
 };
 
 // "# Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode"
@@ -106,11 +98,11 @@ function handleLine(line: string) {
   }
 
   if (line.startsWith('#')) {
-    // console.log(line);
+    // logger.info(line);
     return;
   }
 
-  console.log(line);
+  logger.debug(line);
 }
 
 let startupText = '';
@@ -120,7 +112,7 @@ async function main() {
   const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
   const isp = new flasher.InSystemProgramming(path, programmingBaudRate, programmingClockFrequency, logger);
 
-  console.log('Resetting oven to known state...');
+  logger.info('Resetting oven to known state...');
 
   pins.rst.digitalWrite(0);
   pins.isp.digitalWrite(1);
@@ -145,33 +137,35 @@ async function main() {
       const match = line.match(/T-962-controller open source firmware \((?<version>v\d+.\d+.\d+)\)/);
 
       if (!match?.groups) {
-        console.log(`Received: ${line}`);
+        logger.debug(`Received: ${line}`);
         return;
       }
 
       const { version } = match.groups;
 
-      console.log(`Found version ${version}`);
+      logger.info(`Found version ${version}`);
 
       done(version);
     }
 
     parser.on('data', getVersion);
 
-    console.log('Sending about command...');
+    logger.debug('Sending about command...');
     // Send command
     port.write('about\n');
 
     // Wait for response
     timeout = setTimeout(() => {
-      console.log('Timeout waiting for version');
+      logger.warn('Timeout waiting for version');
       done();
-    }, 2000);
+    }, 1000);
   });
 
   // TODO: Load latest firmware from github
   if (version !== 'v0.5.2') {
-    console.log('Downloading hex file...');
+    logger.info('Updating to latest firmware...');
+
+    logger.debug('Downloading hex file...');
     const hexUrl =
       'https://github.com/UnifiedEngineering/T-962-improvements/releases/download/v0.5.2/T-962-controller.hex';
 
@@ -179,11 +173,11 @@ async function main() {
     if (!res.body) throw new Error('No body');
     if (!res.ok || res.status !== 200) throw new Error(`Bad response: ${res.status} ${res.statusText}`);
 
-    console.log('Parsing hex file...');
+    logger.debug('Parsing hex file...');
 
     const memMap: Map<number, Uint8Array> = MemoryMap.fromHex(await res.text());
 
-    console.log('Updating firmware...');
+    logger.debug('Updating firmware...');
 
     // Put device into reset
     pins.rst.digitalWrite(0);
@@ -208,8 +202,8 @@ async function main() {
     // Flash new firmware, one section of the hex file at a time
     for (const [address, data] of memMap.entries()) {
       await new Promise<void>(async (resolve, reject) => {
-        console.log(`Downloading ${data.length} bytes to address ${address}...`);
-        console.log(`First 16 bytes: ${data.slice(0, 16).join(' ')}`);
+        logger.debug(`Downloading ${data.length} bytes to address ${address}...`);
+        logger.debug(`First 16 bytes: ${data.slice(0, 16).join(' ')}`);
 
         const programmer = new Programmer(isp, address, data.length);
 
@@ -219,9 +213,9 @@ async function main() {
 
         // Progress
         let count = 0;
-        programmer.on('start', () => console.log(`About to flash new hex...`));
+        programmer.on('start', () => logger.debug(`About to flash new hex...`));
         programmer.on('chunk', buffer => (count += buffer.length));
-        programmer.on('end', () => console.log(`${count} bytes written to flash`));
+        programmer.on('end', () => logger.debug(`${count} bytes written to flash`));
 
         // Start programming
         programmer.program(Readable.from(data));
@@ -238,7 +232,7 @@ async function main() {
     pins.rst.digitalWrite(0);
     await sleep(resetDuration);
 
-    console.log('Done with flasher');
+    logger.info('Done with flasher');
 
     // Re-open user port
     await new Promise<void>((resolve, reject) => port.open(err => (err ? reject(err) : resolve())));
@@ -249,7 +243,7 @@ async function main() {
   // Pull device out of reset
   pins.rst.digitalWrite(1);
 
-  console.log('Dashboard main');
+  logger.info('Dashboard main');
 
   await sleep(1000);
 
