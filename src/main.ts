@@ -30,7 +30,6 @@ const pins = {
 // "# Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode"
 // "   0.0,   31.5,  44.1,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY"
 type StatusUpdate = {
-  type?: undefined;
   time: number;
   temp0: number;
   temp1: number;
@@ -58,17 +57,41 @@ type InterruptedReflow = {
 type UpdateFromDevice = StatusUpdate | StartingReflow | InterruptedReflow;
 
 function isStatusUpdate(update: UpdateFromDevice): update is StatusUpdate {
-  return update.type === undefined;
+  return !('type' in update);
 }
 function isStartingReflow(update: UpdateFromDevice): update is StartingReflow {
+  if (isStatusUpdate(update)) return false;
   return update.type === 'starting';
 }
 function isInterruptedReflow(update: UpdateFromDevice): update is InterruptedReflow {
+  if (isStatusUpdate(update)) return false;
   return update.type === 'interrupted';
 }
 
 function handleUpdate(update: UpdateFromDevice) {
-  // console.log(`Time: ${update.time} Set: ${update.set} Actual: ${update.actual} Heat: ${update.heat} Fan: ${update.fan} ColdJ: ${update.coldJ} Mode: ${update.mode} `);
+  if (isStatusUpdate(update)) {
+    state.status.unshift(update);
+    if (state.status.length > 1000) {
+      state.status.pop();
+    }
+    if (update.mode !== 'REFLOW') {
+      state.activeProfile = undefined;
+    }
+
+    return;
+  }
+
+  if (isStartingReflow(update)) {
+    state.activeProfile = update.profile;
+    return;
+  }
+
+  if (isInterruptedReflow(update)) {
+    state.activeProfile = undefined;
+    return;
+  }
+
+  logger.error('Unknown update type', update);
 }
 
 function handleLine(line: string) {
