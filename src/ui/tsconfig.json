@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "resolveJsonModule": true, // Allow importing JSON files. Needed to read package.json for build.
+
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "skipLibCheck": true
+  }
+}
