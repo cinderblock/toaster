@@ -6,6 +6,7 @@ import { Gpio } from 'pigpio';
 import MemoryMap from 'nrf-intel-hex';
 import { Readable } from 'stream';
 import logger from './log';
+import { sleep } from './util/sleep';
 
 const path = '/dev/serial0';
 
@@ -16,10 +17,6 @@ const pinUartMode = piUART ? Gpio.ALT5 : Gpio.ALT0;
 const programmingBaudRate = 57600;
 const programmingClockFrequency = 11059;
 const runtimeBaudRate = 115200;
-
-function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 const resetDuration = 100;
 
