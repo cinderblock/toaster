@@ -48,8 +48,8 @@ This allows us to place the Pi inside of the oven, and still have a reliable WiF
 | **Ribbon** |              |      |      |            |
 | 1          | `n_ISP`      | 11   | 17   | Yellow     |
 | 2          | `n_RESET`    | 12   | 18   | Orange     |
-| 3          | `Device Out` | 10   | 15   | Red        |
-| 4          | `Device In`  | 8    | 14   | Brown      |
+| 3          | Device ➡️ Pi | 10   | 15   | Red        |
+| 4          | Device ⬅️ Pi | 8    | 14   | Brown      |
 | 5          | `GND`        | 6    |      | Black      |
 | **Other**  |              |      |      |            |
 | _5V_       | 5V Supply    | 4    |      | Red        |
