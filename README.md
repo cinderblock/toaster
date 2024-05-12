@@ -6,8 +6,8 @@ A simple web dashboard for my SMT reflow oven (T-962 + Raspberry Pi)
 
 1. Install [Raspberry Pi OS](https://www.raspberrypi.com/software/) on your Raspberry Pi
 2. Setup [access to your Pi](https://www.raspberrypi.com/documentation/computers/remote-access.html) via SSH with a private key
-3. Run `npm i` (`npm install`) locally to install dependencies locally
-4. Run `npm start` to deploy the app to your Pi
+3. Run `npm i` (`npm install`) locally (development computer) to install dependencies
+4. Run `npm start` locally to deploy the app to your Pi
 
 ## Development
 
