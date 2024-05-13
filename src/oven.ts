@@ -160,6 +160,31 @@ const pins = {
 const port = new SerialPort({ path, baudRate: runtimeBaudRate });
 const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
 
+/*
+Available commands:
+- about                   Show about + debug information
+- bake <setpoint>         Enter Bake mode with setpoint
+- bake <setpoint> <time>  Enter Bake mode with setpoint for <time> seconds
+- help                    Display help text
+- list profiles           List available reflow profiles
+- list settings           List machine settings
+- quiet                   No logging in standby mode
+- reflow                  Start reflow with selected profile
+- setting <id> <value>    Set setting id to value
+- select profile <id>     Select reflow profile by id
+- stop                    Exit reflow or bake mode
+- values                  Dump currently measured values
+*/
+
+type SimpleCommands = 'about' | 'help' | 'list profiles' | 'list settings' | 'quiet' | 'reflow' | 'stop' | 'values';
+type BakeCommand = `bake ${number}` | `bake ${number} ${number}`;
+type SettingCommand = `setting ${number} ${number}`;
+type SelectProfileCommand = `select profile ${number}`;
+type Command = SimpleCommands | BakeCommand | SettingCommand | SelectProfileCommand;
+function sendCommand(command: Command) {
+  port.write(command + '\n');
+}
+
 export async function setupOvenCommunications() {
   logger.info('Resetting oven to known state...');
 
@@ -198,8 +223,10 @@ export async function setupOvenCommunications() {
     parser.on('data', getVersion);
 
     logger.debug('Sending about command...');
-    // Send command
-    port.write('about\n');
+    sendCommand('about');
+
+    // logger.debug('Sending help command...');
+    // sendCommand('help');
 
     // Wait for response
     timeout = setTimeout(() => {
