@@ -37,7 +37,7 @@ wss.on('connection', function connection(ws) {
 });
 
 server.on('request', (req, res) => {
-  logger.info('Request', req.url);
+  logger.info(`HTTP Request ${req.url}`);
 });
 
 server.on('upgrade', function upgrade(request, socket, head) {
