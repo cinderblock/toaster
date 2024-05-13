@@ -188,13 +188,26 @@ async function saveOvenState(state: SavedState) {
   logger.debug('Saved state');
 }
 async function loadOvenState(): Promise<SavedState | undefined> {
-  const data = await readFile(ovenStateFile, 'utf8').then(JSON.parse, () => {});
+  let data: SavedState | undefined;
+
+  try {
+    const f = await readFile(ovenStateFile, 'utf8');
+    logger.debug('State file found');
+
+    data = JSON.parse(f);
+  } catch (e) {
+    logger.error('Error reading state file');
+    logger.error(e);
+    return;
+  }
+
+  // Check for valid state
 
   if (data?.version === 'v0.5.2') {
     return { version: data.version };
   }
 
-  logger.debug('No saved state found');
+  logger.debug('Invalid state found');
 
   return undefined;
 }
@@ -250,7 +263,10 @@ async function recoverCommunications() {
   logger.debug('Setting up oven communications...');
 
   const state = await loadOvenState();
+
   if (state?.version === 'v0.5.2') {
+    logger.info('Found saved oven state');
+
     // Loaded a good saved state. Let's try to use it.
     setDataHandling(true);
 
@@ -263,7 +279,12 @@ async function recoverCommunications() {
 
     // Quick check to see if we're getting data
     function checkData() {
-      if (dataGood) s.cancel();
+      if (dataGood) {
+        logger.debug('Data is good!');
+        s.cancel();
+      } else {
+        logger.debug('❌  Data is not good yet...');
+      }
 
       return dataGood;
     }
@@ -279,6 +300,8 @@ async function recoverCommunications() {
 
       return;
     }
+
+    logger.info('Failed to recover oven state');
 
     setDataHandling(false);
   }
@@ -301,7 +324,12 @@ async function recoverCommunications() {
   const s = sleep(5000);
   // Quick check to see if we're getting data
   function checkData() {
-    if (dataGood) s.cancel();
+    if (dataGood) {
+      s.cancel();
+      logger.debug('Data is good finally!');
+    } else {
+      logger.debug('✖️  Data is not good yet');
+    }
 
     return dataGood;
   }
