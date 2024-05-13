@@ -64,12 +64,12 @@ let dataGood = false;
 function handleLine(line: string) {
   if (line.startsWith('#')) {
     // Example: # Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode
-    // logger.info(line);
     return;
   }
 
   const match = outputPatterns.update.exec(line);
   if (match?.groups) {
+    // logger.info(line);
     try {
       const update: UpdateFromDevice = {
         realTime: Date.now(),
@@ -252,11 +252,205 @@ function setDataHandling(enabled: boolean) {
   }
 }
 
+async function getResponseLine(timeout = 1000) {
+  return new Promise<string | undefined>((resolve, reject) => {
+    let to: NodeJS.Timeout;
+
+    function done(line: string | undefined) {
+      clearTimeout(to);
+      parser.removeListener('data', getResponse);
+      resolve(line);
+    }
+
+    function getResponse(line: string) {
+      done(line);
+    }
+
+    parser.on('data', getResponse);
+
+    to = setTimeout(() => {
+      logger.warn('Timeout waiting for response');
+      done(undefined);
+    }, timeout);
+  });
+}
+async function getProfiles() {
+  logger.debug('Stopping outputs...🧠');
+
+  // Stop outputs temporarily
+  await sendCommand('quiet', true);
+
+  await getResponseLine(100);
+
+  setDataHandling(false);
+
+  await sleep(100);
+
+  // Mark the state as unknown since output is stopped.
+  // TODO: Handle this in a more elegant way
+  await saveOvenState({ version: undefined });
+
+  logger.debug('Getting profiles...');
+
+  const profiles: string[] = [];
+
+  const result = new Promise<void>(resolve => {
+    let timeout: NodeJS.Timeout;
+
+    function done() {
+      clearTimeout(timeout);
+      parser.removeListener('data', getProfile);
+      resolve();
+    }
+
+    function getProfile(line: string) {
+      // Handle header
+      if (line === 'Reflow profiles available:') return;
+
+      const match = line.match(/^(?<id>\d+): (?<name>.+)$/);
+
+      if (match?.groups) {
+        const { id, name } = match.groups;
+
+        if (Number(id) !== profiles.length) {
+          logger.warn(`Expected profile ${profiles.length} but got ${id}`);
+        }
+
+        profiles.push(name);
+      }
+    }
+
+    parser.on('data', getProfile);
+
+    timeout = setTimeout(() => {
+      logger.warn('Timeout waiting for profiles');
+      done();
+    }, 1000);
+  });
+
+  // Send our command
+  await sendCommand('list profiles', true);
+
+  // Wait for response
+  await result;
+
+  await sleep(100);
+
+  // Restart outputs
+  sendCommand('quiet');
+  await getResponseLine(100);
+  setDataHandling(true);
+
+  // Mark the state as known since output is started
+  await saveOvenState({ version: 'v0.5.2' });
+
+  return profiles;
+}
+
+/*
+Current settings:
+0: Min fan speed      22
+1: Cycle done beep  0.5s
+2: Left TC gain     1.00
+3: Left TC offset  +0.00
+4: Right TC gain    1.00
+5: Right TC offset +0.00
+*/
+type Setting = {
+  comment: string;
+  value: number;
+};
+
+async function getSettings() {
+  logger.debug('Stopping outputs...🧠');
+
+  // Stop outputs temporarily
+  await sendCommand('quiet', true);
+
+  await getResponseLine(100);
+
+  setDataHandling(false);
+
+  await sleep(100);
+
+  // Mark the state as unknown since output is stopped.
+
+  await saveOvenState({ version: undefined });
+
+  logger.debug('Getting settings...');
+
+  const settings: Setting[] = [];
+
+  const result = new Promise<void>(resolve => {
+    let timeout: NodeJS.Timeout;
+
+    function done() {
+      clearTimeout(timeout);
+      parser.removeListener('data', getSetting);
+      resolve();
+    }
+
+    function getSetting(line: string) {
+      // Handle header
+      if (line === 'Current settings:') return;
+
+      const match = line.match(/^(?<id>\d+): (?<comment>.+?)\s+(?<value>[+-]?[\d.]+)[s]?$/);
+
+      if (match?.groups) {
+        const { id, comment, value } = match.groups;
+
+        if (Number(id) !== settings.length) {
+          logger.warn(`Expected setting ${settings.length} but got ${id}`);
+        }
+
+        settings.push({ comment, value: Number(value) });
+      } else {
+        logger.debug(`Received: ${line}`);
+      }
+    }
+
+    parser.on('data', getSetting);
+
+    timeout = setTimeout(() => {
+      logger.warn('Timeout waiting for settings');
+      done();
+    }, 1000);
+  });
+
+  // Send our command
+  await sendCommand('list settings', true);
+
+  // Wait for response
+  await result;
+
+  await sleep(100);
+
+  // Restart outputs
+  setDataHandling(true);
+  sendCommand('quiet');
+  await getResponseLine(100);
+
+  // Mark the state as known since output is started
+  await saveOvenState({ version: 'v0.5.2' });
+
+  return settings;
+}
+
 export async function setupOvenCommunications() {
   await recoverCommunications();
 
+  logger.debug('Waiting for 3 seconds..');
+
+  await sleep(3000);
+
   // await sendCommand('values');
   // await sendCommand('help');
+
+  console.log(await getProfiles());
+
+  await sleep(1000);
+
+  console.log(await getSettings());
 }
 
 async function recoverCommunications() {
@@ -384,10 +578,7 @@ export async function resetToKnownState() {
     parser.on('data', getVersion);
 
     logger.debug('Sending about command...');
-    await sendCommand('about');
-
-    // logger.debug('Sending help command...');
-    // await sendCommand('help');
+    sendCommand('about');
 
     // Wait for response
     timeout = setTimeout(() => {
