@@ -157,6 +157,22 @@ const pins = {
   txm: new Gpio(14, { mode: pinUartMode }), // Brown
 };
 
+let resetState: Promise<void> | undefined;
+async function reset(bootloader = false, hold = false) {
+  if (!resetState) {
+    pins.rst.digitalWrite(0);
+    resetState = sleep(resetDuration);
+  }
+  pins.isp.digitalWrite(bootloader ? 0 : 1);
+
+  return run();
+}
+async function run() {
+  await resetState;
+  resetState = undefined;
+  pins.rst.digitalWrite(1);
+}
+
 const port = new SerialPort({ path, baudRate: runtimeBaudRate });
 const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
 
@@ -192,10 +208,7 @@ function sendCommand(command: Command, waitForSent = false) {
 export async function setupOvenCommunications() {
   logger.info('Resetting oven to known state...');
 
-  pins.rst.digitalWrite(0);
-  pins.isp.digitalWrite(1);
-  await sleep(resetDuration);
-  pins.rst.digitalWrite(1);
+  await reset();
 
   // First, let's make sure we're running the latest version.
   const version = await new Promise<string | void>(async resolve => {
