@@ -226,7 +226,7 @@ type Command = SimpleCommands | BakeCommand | SettingCommand | SelectProfileComm
 async function sendCommand(command: Command, waitForSent = false) {
   return new Promise<void>((resolve, reject) =>
     port.write(command + '\n', 'ascii', err =>
-      err ? reject(err) : waitForSent ? port.drain(err => (err ? reject(err) : resolve)) : resolve(),
+      err ? reject(err) : waitForSent ? port.drain(err => (err ? reject(err) : resolve())) : resolve(),
     ),
   );
 }
