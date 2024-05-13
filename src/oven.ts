@@ -77,6 +77,7 @@ function handleLine(line: string) {
   }
 
   if (line.startsWith('#')) {
+    // Example: # Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode
     // logger.info(line);
     return;
   }
@@ -139,6 +140,7 @@ const programmingBaudRate = 57600;
 const programmingClockFrequency = 11059;
 const runtimeBaudRate = 115200;
 
+// Time to hold reset low
 const resetDuration = 100;
 
 const pins = {
