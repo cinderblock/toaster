@@ -137,7 +137,7 @@ const handler: BuildAndDeploy = {
       const pack = await readFile('package.json').then(b => JSON.parse(b.toString()));
 
       logger.debug('Read package.json');
-      logger.debug(pack);
+      // logger.debug(pack);
 
       const outFile = remoteDir + '/package.json';
 
