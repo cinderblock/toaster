@@ -58,20 +58,27 @@ function handleLine(line: string) {
 
   const match = line.match(dataRegex);
   if (match?.groups) {
-    handleUpdate({
-      realTime: Date.now(),
-      time: Number(match.groups.time),
-      temp0: Number(match.groups.temp0),
-      temp1: Number(match.groups.temp1),
-      temp2: Number(match.groups.temp2),
-      temp3: Number(match.groups.temp3),
-      set: Number(match.groups.set),
-      actual: Number(match.groups.actual),
-      heat: Number(match.groups.heat),
-      fan: Number(match.groups.fan),
-      coldJ: Number(match.groups.coldJ),
-      mode: match.groups.mode as 'STANDBY' | 'REFLOW' | 'BAKE',
-    });
+    // logger.debug(line);
+
+    try {
+      handleUpdate({
+        realTime: Date.now(),
+        time: Number(match.groups.time),
+        temp0: Number(match.groups.temp0),
+        temp1: Number(match.groups.temp1),
+        temp2: Number(match.groups.temp2),
+        temp3: Number(match.groups.temp3),
+        set: Number(match.groups.set),
+        actual: Number(match.groups.actual),
+        heat: Number(match.groups.heat),
+        fan: Number(match.groups.fan),
+        coldJ: Number(match.groups.coldJ),
+        mode: match.groups.mode as 'STANDBY' | 'REFLOW' | 'BAKE',
+      });
+    } catch (e) {
+      logger.error('Failed to handle update');
+      logger.error(e);
+    }
 
     return;
   }
