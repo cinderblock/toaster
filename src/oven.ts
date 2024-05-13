@@ -54,18 +54,24 @@ export function isInterruptedReflow(update: UpdateFromDevice): update is Interru
   return update.type === 'interrupted';
 }
 
+const outputPatterns = {
+  update:
+    /^\s*(?<time>[^\s,]+),\s*(?<temp0>[^\s,]+),\s*(?<temp1>[^\s,]+),\s*(?<temp2>[^\s,]+),\s*(?<temp3>[^\s,]+),\s*(?<set>[^\s,]+),\s*(?<actual>[^\s,]+),\s*(?<heat>[^\s,]+),\s*(?<fan>[^\s,]+),\s*(?<coldJ>[^\s,]+),\s*(?<mode>STANDBY|REFLOW|BAKE)$/,
+};
+
 let dataGood = false;
 
 function handleLine(line: string) {
-  const dataRegex =
-    /^\s*(?<time>[^\s,]+),\s*(?<temp0>[^\s,]+),\s*(?<temp1>[^\s,]+),\s*(?<temp2>[^\s,]+),\s*(?<temp3>[^\s,]+),\s*(?<set>[^\s,]+),\s*(?<actual>[^\s,]+),\s*(?<heat>[^\s,]+),\s*(?<fan>[^\s,]+),\s*(?<coldJ>[^\s,]+),\s*(?<mode>STANDBY|REFLOW|BAKE)$/;
+  if (line.startsWith('#')) {
+    // Example: # Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode
+    // logger.info(line);
+    return;
+  }
 
-  const match = line.match(dataRegex);
+  const match = outputPatterns.update.exec(line);
   if (match?.groups) {
-    // logger.debug(line);
-
     try {
-      handleUpdate({
+      const update: UpdateFromDevice = {
         realTime: Date.now(),
         time: Number(match.groups.time),
         temp0: Number(match.groups.temp0),
@@ -78,8 +84,9 @@ function handleLine(line: string) {
         fan: Number(match.groups.fan),
         coldJ: Number(match.groups.coldJ),
         mode: match.groups.mode as 'STANDBY' | 'REFLOW' | 'BAKE',
-      });
+      };
       dataGood = true;
+      handleUpdate(update);
     } catch (e) {
       logger.error('Failed to handle update');
       logger.error(e);
@@ -89,16 +96,10 @@ function handleLine(line: string) {
     return;
   }
 
-  if (line.startsWith('#')) {
-    // Example: # Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode
-    // logger.info(line);
-    return;
-  }
-
   logger.debug(line);
 
-  // Example output lines from v0.5.2
-  /*/
+  // Example output lines from v0.5.2 startup:
+  /*
   See https://github.com/UnifiedEngineering/T-962-improvement for more details.
   Initializing improved reflow oven...
   Reset reason(s): [EXTR]
@@ -140,7 +141,7 @@ function handleLine(line: string) {
           Right: 43.4degC
   Cold junction: 31.0degC
   Toggled standby logging
-  //*/
+  */
 }
 
 const path = '/dev/serial0';
