@@ -1,6 +1,7 @@
 import { SerialPort } from 'serialport';
 import { ReadlineParser } from '@serialport/parser-readline';
 import { Gpio } from 'pigpio';
+import { writeFile, readFile } from 'fs/promises';
 import * as flasher from 'lpc-flash';
 import { Programmer } from 'lpc-flash';
 import MemoryMap from 'nrf-intel-hex';
@@ -9,6 +10,7 @@ import logger from './log';
 import { sleep } from './util/sleep';
 import {} from './main';
 import { handleUpdate } from './main';
+import { tmpdir } from 'os';
 
 // "# Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode"
 // "   0.0,   31.5,  44.1,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY"
@@ -52,6 +54,8 @@ export function isInterruptedReflow(update: UpdateFromDevice): update is Interru
   return update.type === 'interrupted';
 }
 
+let dataGood = false;
+
 function handleLine(line: string) {
   const dataRegex =
     /^\s*(?<time>[^\s,]+),\s*(?<temp0>[^\s,]+),\s*(?<temp1>[^\s,]+),\s*(?<temp2>[^\s,]+),\s*(?<temp3>[^\s,]+),\s*(?<set>[^\s,]+),\s*(?<actual>[^\s,]+),\s*(?<heat>[^\s,]+),\s*(?<fan>[^\s,]+),\s*(?<coldJ>[^\s,]+),\s*(?<mode>STANDBY|REFLOW|BAKE)$/;
@@ -75,9 +79,11 @@ function handleLine(line: string) {
         coldJ: Number(match.groups.coldJ),
         mode: match.groups.mode as 'STANDBY' | 'REFLOW' | 'BAKE',
       });
+      dataGood = true;
     } catch (e) {
       logger.error('Failed to handle update');
       logger.error(e);
+      dataGood = false;
     }
 
     return;
@@ -173,6 +179,25 @@ async function run() {
   pins.rst.digitalWrite(1);
 }
 
+type SavedState = { version: string | undefined };
+const ovenStateFile = tmpdir() + '/oven-state.json';
+async function saveOvenState(state: SavedState) {
+  await writeFile(ovenStateFile, JSON.stringify(state), 'utf8');
+
+  logger.debug('Saved state');
+}
+async function loadOvenState(): Promise<SavedState | undefined> {
+  const data = await readFile(ovenStateFile, 'utf8').then(JSON.parse, () => {});
+
+  if (data?.version === 'v0.5.2') {
+    return { version: data.version };
+  }
+
+  logger.debug('No saved state found');
+
+  return undefined;
+}
+
 const port = new SerialPort({ path, baudRate: runtimeBaudRate });
 const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
 
@@ -205,8 +230,98 @@ function sendCommand(command: Command, waitForSent = false) {
   );
 }
 
+function setDataHandling(enabled: boolean) {
+  if (enabled) {
+    parser.on('data', handleLine);
+  } else {
+    parser.removeListener('data', handleLine);
+  }
+}
+
 export async function setupOvenCommunications() {
+  await recoverCommunications();
+
+  // await sendCommand('values');
+  // await sendCommand('help');
+}
+
+async function recoverCommunications() {
+  logger.debug('Setting up oven communications...');
+
+  const state = await loadOvenState();
+  if (state?.version === 'v0.5.2') {
+    // Loaded a good saved state. Let's try to use it.
+    setDataHandling(true);
+
+    // TODO: Ask for the current version and confirm that way instead of resetting/assuming it's good based on the line format.
+
+    // TODO: Do something more elegant than this
+
+    // Give it 5 seconds to get data
+    const s = sleep(5000);
+
+    // Quick check to see if we're getting data
+    function checkData() {
+      if (dataGood) s.cancel();
+
+      return dataGood;
+    }
+
+    const checkTwice = () => checkData() || parser.once('data', checkData);
+
+    // Check twice quickly, in case the first line was garbage.
+    parser.once('data', checkTwice);
+
+    await s;
+    if (dataGood) {
+      logger.info('Successfully recovered oven state');
+
+      return;
+    }
+
+    setDataHandling(false);
+  }
+
+  await resetToKnownState();
+
+  setDataHandling(true);
+
+  logger.info('Starting oven communications...');
+
+  run();
+
+  await sleep(500);
+
+  // Start printing values during standby
+  await sendCommand('quiet');
+
+  // TODO: Do something more elegant than this
+
+  const s = sleep(5000);
+  // Quick check to see if we're getting data
+  function checkData() {
+    if (dataGood) s.cancel();
+
+    return dataGood;
+  }
+
+  const checkTwice = () => checkData() || parser.once('data', checkData);
+  parser.once('data', checkTwice);
+
+  await s;
+
+  if (dataGood) {
+    logger.info('Oven communications started!');
+    saveOvenState({ version: 'v0.5.2' });
+  } else {
+    logger.error('Failed to start oven communications?');
+  }
+}
+
+export async function resetToKnownState() {
   logger.info('Resetting oven to known state...');
+
+  saveOvenState({ version: undefined });
 
   await reset();
 
@@ -330,19 +445,6 @@ export async function setupOvenCommunications() {
     // Re-open user port
     await new Promise<void>((resolve, reject) => port.open(err => (err ? reject(err) : resolve())));
   }
-
-  parser.on('data', handleLine);
-
-  // Pull device out of reset
-  pins.rst.digitalWrite(1);
-
-  logger.info('Dashboard main');
-
-  await sleep(1000);
-
-  // port.write('help\n');
-  // Start printing values during standby
-  port.write('quiet\n');
-
-  // port.write('values\n');
 }
+
+// cSpell:ignore setpoint
