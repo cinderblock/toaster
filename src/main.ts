@@ -59,7 +59,8 @@ server.on('upgrade', function upgrade(request, socket, head) {
 // TODO: Server local files
 
 const port = 80;
-server.listen(port, () => {
+// TODO: listen on IPv6 too
+server.listen(port, '0.0.0.0', () => {
   logger.info(`Server listening http://${hostname()}${port === 80 ? '' : `:${port}`}`);
 });
 
