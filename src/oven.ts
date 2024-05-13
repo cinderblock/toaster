@@ -181,8 +181,12 @@ type BakeCommand = `bake ${number}` | `bake ${number} ${number}`;
 type SettingCommand = `setting ${number} ${number}`;
 type SelectProfileCommand = `select profile ${number}`;
 type Command = SimpleCommands | BakeCommand | SettingCommand | SelectProfileCommand;
-function sendCommand(command: Command) {
-  port.write(command + '\n');
+function sendCommand(command: Command, waitForSent = false) {
+  return new Promise<void>((resolve, reject) =>
+    port.write(command + '\n', 'ascii', err =>
+      err ? reject(err) : waitForSent ? port.drain(err => (err ? reject(err) : resolve)) : resolve(),
+    ),
+  );
 }
 
 export async function setupOvenCommunications() {
@@ -194,7 +198,7 @@ export async function setupOvenCommunications() {
   pins.rst.digitalWrite(1);
 
   // First, let's make sure we're running the latest version.
-  const version = await new Promise<string | void>(resolve => {
+  const version = await new Promise<string | void>(async resolve => {
     let timeout: NodeJS.Timeout;
 
     // Cleanup and resolve
@@ -223,10 +227,10 @@ export async function setupOvenCommunications() {
     parser.on('data', getVersion);
 
     logger.debug('Sending about command...');
-    sendCommand('about');
+    await sendCommand('about');
 
     // logger.debug('Sending help command...');
-    // sendCommand('help');
+    // await sendCommand('help');
 
     // Wait for response
     timeout = setTimeout(() => {
