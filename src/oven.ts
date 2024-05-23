@@ -6,10 +6,10 @@ import * as flasher from 'lpc-flash';
 import { Programmer } from 'lpc-flash';
 import MemoryMap from 'nrf-intel-hex';
 import { Readable } from 'stream';
-import logger from './log';
-import { sleep } from './util/sleep';
-import {} from './main';
-import { handleUpdate } from './main';
+import logger from './log.js';
+import { sleep } from './util/sleep.js';
+import {} from './main.js';
+import { handleUpdate } from './main.js';
 import { tmpdir } from 'os';
 
 // "# Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode"

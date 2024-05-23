@@ -158,7 +158,7 @@ const handler: BuildAndDeploy = {
       const opts: TransformOptions = {
         loader: 'ts',
         target: 'es2019',
-        format: 'cjs',
+        format: 'esm',
         sourcemap: 'inline',
         sourcefile: localPathSanitized.replace(/^.*\//, ''),
         sourcesContent: false,

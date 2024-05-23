@@ -1,4 +1,4 @@
-import { StatusUpdate } from './oven';
+import { StatusUpdate } from './oven.js';
 
 export type State = {
   status: StatusUpdate[];

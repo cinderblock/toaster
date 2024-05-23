@@ -1,4 +1,4 @@
-import logger from './log';
+import logger from './log.js';
 import WebSocket, { WebSocketServer } from 'ws';
 import { createServer } from 'http';
 import { parse } from 'url';
@@ -9,8 +9,8 @@ import {
   isStartingReflow,
   isStatusUpdate,
   setupOvenCommunications,
-} from './oven';
-import { state } from './state';
+} from './oven.js';
+import { state } from './state.js';
 
 const server = createServer();
 
