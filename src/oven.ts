@@ -329,23 +329,23 @@ async function getProfiles() {
 
   const profiles: string[] = [];
 
-    function getProfile(line: string) {
-      // Handle header
-      if (line === 'Reflow profiles available:') return;
+  function getProfile(line: string) {
+    // Handle header
+    if (line === 'Reflow profiles available:') return;
 
-      const match = line.match(/^(?<id>\d+): (?<name>.+)$/);
+    const match = line.match(/^(?<id>\d+): (?<name>.+)$/);
 
-      if (match?.groups) {
-        const { id, name } = match.groups;
-        const expectedId = profiles.length;
+    if (match?.groups) {
+      const { id, name } = match.groups;
+      const expectedId = profiles.length;
 
-        if (Number(id) !== expectedId) {
-          logger.warn(`Expected profile ${expectedId}. Got ${id}.`);
-        }
-
-        profiles.push(name);
+      if (Number(id) !== expectedId) {
+        logger.warn(`Expected profile ${expectedId}. Got ${id}.`);
       }
+
+      profiles.push(name);
     }
+  }
 
   await sendCommandGetResponse('list profiles', getProfile);
 
