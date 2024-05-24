@@ -8,6 +8,7 @@ import MemoryMap from 'nrf-intel-hex';
 import { Readable } from 'stream';
 import logger from './log.js';
 import { sleep } from './util/sleep.js';
+import { SwitchPromise } from './util/SwitchPromise.js';
 import {} from './main.js';
 import { handleUpdate } from './main.js';
 import { tmpdir } from 'os';
@@ -61,6 +62,8 @@ const outputPatterns = {
 
 let dataGood = false;
 
+const outputting = new SwitchPromise();
+
 function handleLine(line: string) {
   if (line.startsWith('#')) {
     // Example: # Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode
@@ -86,6 +89,7 @@ function handleLine(line: string) {
         mode: match.groups.mode as 'STANDBY' | 'REFLOW' | 'BAKE',
       };
       dataGood = true;
+      outputting.set(true);
       handleUpdate(update);
     } catch (e) {
       logger.error('Failed to handle update');
@@ -518,32 +522,15 @@ async function recoverCommunications() {
   // Start printing values during standby
   await sendCommand('quiet');
 
-  // TODO: Do something more elegant than this
+  const res = await Promise.race([outputting.next(true), sleep(5000).then(() => false as false)]);
 
-  const s = sleep(5000);
-  // Quick check to see if we're getting data
-  function checkData() {
-    if (dataGood) {
-      s.cancel();
-      logger.debug('Data is good finally!');
-    } else {
-      logger.debug('✖️  Data is not good yet');
-    }
-
-    return dataGood;
-  }
-
-  const checkTwice = () => checkData() || parser.once('data', checkData);
-  parser.once('data', checkTwice);
-
-  await s;
-
-  if (dataGood) {
-    logger.info('Oven communications started!');
-    saveOvenState({ version: 'v0.5.2' });
-  } else {
+  if (!res) {
     logger.error('Failed to start oven communications?');
+    return;
   }
+
+  logger.info('Oven communications started!');
+  await saveOvenStateGood();
 }
 
 export async function resetToKnownState() {
@@ -552,6 +539,8 @@ export async function resetToKnownState() {
   await saveOvenStateUnknown();
 
   await reset();
+
+  outputting.set(false);
 
   // First, let's make sure we're running the latest version.
   const version = await new Promise<string | void>(async resolve => {
