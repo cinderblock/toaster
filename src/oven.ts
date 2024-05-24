@@ -292,7 +292,7 @@ async function getResponseLine(timeout = 1000) {
 
 async function sendCommandGetResponse(
   command: Command,
-  lineHandler: (line: string) => void,
+  lineHandler: (line: string) => boolean | void,
   initialTimeout = 500,
   runningTimeout = 100,
 ) {
@@ -302,8 +302,13 @@ async function sendCommandGetResponse(
 
   responseLineHandler = line => {
     logger.silly(`Received: ${line}`);
+    const done = lineHandler(line);
+    if (done) {
+      wd.done();
+      logger.debug('line handler indicated done');
+      return;
+    }
     wd.start(runningTimeout);
-    lineHandler(line);
   };
 
   // Send our command
