@@ -61,8 +61,6 @@ const outputPatterns = {
     /^\s*(?<time>[^\s,]+),\s*(?<temp0>[^\s,]+),\s*(?<temp1>[^\s,]+),\s*(?<temp2>[^\s,]+),\s*(?<temp3>[^\s,]+),\s*(?<set>[^\s,]+),\s*(?<actual>[^\s,]+),\s*(?<heat>[^\s,]+),\s*(?<fan>[^\s,]+),\s*(?<coldJ>[^\s,]+),\s*(?<mode>STANDBY|REFLOW|BAKE)$/,
 };
 
-let dataGood = false;
-
 const outputting = new SwitchPromise();
 
 let responseLineHandler: ((line: string) => void) | undefined;
@@ -91,13 +89,11 @@ function handleLine(line: string) {
         coldJ: Number(match.groups.coldJ),
         mode: match.groups.mode as 'STANDBY' | 'REFLOW' | 'BAKE',
       };
-      dataGood = true;
       outputting.set(true);
       handleUpdate(update);
     } catch (e) {
       logger.error('Failed to handle update');
       logger.error(e);
-      dataGood = false;
     }
 
     return;
@@ -426,32 +422,10 @@ async function recoverCommunications() {
 
     // TODO: Ask for the current version and confirm that way instead of resetting/assuming it's good based on the line format.
 
-    // TODO: Do something more elegant than this
+    const output = await Promise.race([outputting.next(true), sleep(5000).then(() => false)]);
 
-    // Give it 5 seconds to get data
-    const s = sleep(5000);
-
-    // Quick check to see if we're getting data
-    function checkData() {
-      if (dataGood) {
-        logger.debug('Data is good!');
-        s.cancel();
-      } else {
-        logger.debug('❌  Data is not good yet...');
-      }
-
-      return dataGood;
-    }
-
-    const checkTwice = () => checkData() || parser.once('data', checkData);
-
-    // Check twice quickly, in case the first line was garbage.
-    parser.once('data', checkTwice);
-
-    await s;
-    if (dataGood) {
+    if (output) {
       logger.info('Successfully recovered oven state');
-
       return;
     }
 
