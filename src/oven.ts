@@ -211,6 +211,12 @@ async function loadOvenState(): Promise<SavedState | undefined> {
 
   return undefined;
 }
+async function saveOvenStateGood() {
+  await saveOvenState({ version: 'v0.5.2' });
+}
+async function saveOvenStateUnknown() {
+  await saveOvenState({ version: undefined });
+}
 
 const port = new SerialPort({ path, baudRate: runtimeBaudRate });
 const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
@@ -287,8 +293,7 @@ async function getProfiles() {
   await sleep(100);
 
   // Mark the state as unknown since output is stopped.
-  // TODO: Handle this in a more elegant way
-  await saveOvenState({ version: undefined });
+  await saveOvenStateUnknown();
 
   logger.debug('Getting profiles...');
 
@@ -343,7 +348,7 @@ async function getProfiles() {
   setDataHandling(true);
 
   // Mark the state as known since output is started
-  await saveOvenState({ version: 'v0.5.2' });
+  await saveOvenStateGood();
 
   return profiles;
 }
@@ -375,8 +380,7 @@ async function getSettings() {
   await sleep(100);
 
   // Mark the state as unknown since output is stopped.
-
-  await saveOvenState({ version: undefined });
+  await saveOvenStateUnknown();
 
   logger.debug('Getting settings...');
 
@@ -432,7 +436,7 @@ async function getSettings() {
   await getResponseLine(100);
 
   // Mark the state as known since output is started
-  await saveOvenState({ version: 'v0.5.2' });
+  await saveOvenStateGood();
 
   return settings;
 }
@@ -545,7 +549,7 @@ async function recoverCommunications() {
 export async function resetToKnownState() {
   logger.info('Resetting oven to known state...');
 
-  saveOvenState({ version: undefined });
+  await saveOvenStateUnknown();
 
   await reset();
 
