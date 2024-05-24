@@ -55,7 +55,8 @@ export class Watchdog {
     this.state = 'stopped';
   }
 
-  private done() {
+  done() {
+    this.stop();
     this.state = 'done';
     this.callbacks.forEach(cb => cb());
   }
@@ -76,6 +77,7 @@ export function newWatchdogPromise(duration: number, start = StartDefault): Prom
     watchdog = new Watchdog(duration, start, resolve);
     watchdog.start = watchdog.start.bind(watchdog);
     watchdog.stop = watchdog.stop.bind(watchdog);
+    watchdog.done = watchdog.done.bind(watchdog);
     watchdog.feed = watchdog.feed.bind(watchdog);
     watchdog.removeCallback = watchdog.removeCallback.bind(watchdog);
     watchdog.removeCallbacks = watchdog.removeCallbacks.bind(watchdog);
