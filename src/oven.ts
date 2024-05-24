@@ -12,6 +12,7 @@ import { SwitchPromise } from './util/SwitchPromise.js';
 import {} from './main.js';
 import { handleUpdate } from './main.js';
 import { tmpdir } from 'os';
+import { newWatchdogPromise } from './util/Watchdog.js';
 
 // "# Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode"
 // "   0.0,   31.5,  44.1,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY"
@@ -64,6 +65,8 @@ let dataGood = false;
 
 const outputting = new SwitchPromise();
 
+let responseLineHandler: ((line: string) => void) | undefined;
+
 function handleLine(line: string) {
   if (line.startsWith('#')) {
     // Example: # Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode
@@ -101,6 +104,12 @@ function handleLine(line: string) {
   }
 
   logger.debug(line);
+
+  // If there currently is a response line handler, pass the line to it.
+  if (responseLineHandler) {
+    responseLineHandler(line);
+    return;
+  }
 
   // Example output lines from v0.5.2 startup:
   /*
@@ -284,33 +293,41 @@ async function getResponseLine(timeout = 1000) {
     }, timeout);
   });
 }
+
+async function sendCommandGetResponse(
+  command: Command,
+  lineHandler: (line: string) => void,
+  initialTimeout = 500,
+  runningTimeout = 100,
+) {
+  if (responseLineHandler) throw new Error('Already have a response line handler');
+
+  const wd = newWatchdogPromise(initialTimeout, false);
+
+  responseLineHandler = line => {
+    logger.silly(`Received: ${line}`);
+    wd.start(runningTimeout);
+    lineHandler(line);
+  };
+
+  // Send our command
+  await sendCommand(command, true);
+
+  // Start the watchdog
+  wd.start(initialTimeout);
+
+  logger.debug(`Sent command: ${command}`);
+
+  // Wait for responses to stop
+  await wd;
+
+  responseLineHandler = undefined;
+}
+
 async function getProfiles() {
-  logger.debug('Stopping outputs...🧠');
-
-  // Stop outputs temporarily
-  await sendCommand('quiet', true);
-
-  await getResponseLine(100);
-
-  setDataHandling(false);
-
-  await sleep(100);
-
-  // Mark the state as unknown since output is stopped.
-  await saveOvenStateUnknown();
-
   logger.debug('Getting profiles...');
 
   const profiles: string[] = [];
-
-  const result = new Promise<void>(resolve => {
-    let timeout: NodeJS.Timeout;
-
-    function done() {
-      clearTimeout(timeout);
-      parser.removeListener('data', getProfile);
-      resolve();
-    }
 
     function getProfile(line: string) {
       // Handle header
@@ -330,29 +347,7 @@ async function getProfiles() {
       }
     }
 
-    parser.on('data', getProfile);
-
-    timeout = setTimeout(() => {
-      logger.warn('Timeout waiting for profiles');
-      done();
-    }, 1000);
-  });
-
-  // Send our command
-  await sendCommand('list profiles', true);
-
-  // Wait for response
-  await result;
-
-  await sleep(100);
-
-  // Restart outputs
-  sendCommand('quiet');
-  await getResponseLine(100);
-  setDataHandling(true);
-
-  // Mark the state as known since output is started
-  await saveOvenStateGood();
+  await sendCommandGetResponse('list profiles', getProfile);
 
   return profiles;
 }
@@ -372,75 +367,31 @@ type Setting = {
 };
 
 async function getSettings() {
-  logger.debug('Stopping outputs...🧠');
-
-  // Stop outputs temporarily
-  await sendCommand('quiet', true);
-
-  await getResponseLine(100);
-
-  setDataHandling(false);
-
-  await sleep(100);
-
-  // Mark the state as unknown since output is stopped.
-  await saveOvenStateUnknown();
-
   logger.debug('Getting settings...');
 
   const settings: Setting[] = [];
 
-  const result = new Promise<void>(resolve => {
-    let timeout: NodeJS.Timeout;
+  function getSetting(line: string) {
+    // Handle header
+    if (line === 'Current settings:') return;
 
-    function done() {
-      clearTimeout(timeout);
-      parser.removeListener('data', getSetting);
-      resolve();
-    }
+    const match = line.match(/^(?<id>\d+): (?<comment>.+?)\s+(?<value>[+-]?[\d.]+)[s]?$/);
 
-    function getSetting(line: string) {
-      // Handle header
-      if (line === 'Current settings:') return;
+    if (match?.groups) {
+      const { id, comment, value } = match.groups;
 
-      const match = line.match(/^(?<id>\d+): (?<comment>.+?)\s+(?<value>[+-]?[\d.]+)[s]?$/);
-
-      if (match?.groups) {
-        const { id, comment, value } = match.groups;
-
-        if (Number(id) !== settings.length) {
-          logger.warn(`Expected setting ${settings.length} but got ${id}`);
-        }
-
-        settings.push({ comment, value: Number(value) });
-      } else {
-        logger.debug(`Received: ${line}`);
+      if (Number(id) !== settings.length) {
+        logger.warn(`Expected setting ${settings.length} but got ${id}`);
       }
+
+      settings.push({ comment, value: Number(value) });
+    } else {
+      logger.debug(`Received: ${line}`);
     }
-
-    parser.on('data', getSetting);
-
-    timeout = setTimeout(() => {
-      logger.warn('Timeout waiting for settings');
-      done();
-    }, 1000);
-  });
+  }
 
   // Send our command
-  await sendCommand('list settings', true);
-
-  // Wait for response
-  await result;
-
-  await sleep(100);
-
-  // Restart outputs
-  setDataHandling(true);
-  sendCommand('quiet');
-  await getResponseLine(100);
-
-  // Mark the state as known since output is started
-  await saveOvenStateGood();
+  await sendCommandGetResponse('list settings', getSetting);
 
   return settings;
 }
