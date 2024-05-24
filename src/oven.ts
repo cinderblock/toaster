@@ -311,9 +311,10 @@ async function getProfiles() {
 
       if (match?.groups) {
         const { id, name } = match.groups;
+        const expectedId = profiles.length;
 
-        if (Number(id) !== profiles.length) {
-          logger.warn(`Expected profile ${profiles.length} but got ${id}`);
+        if (Number(id) !== expectedId) {
+          logger.warn(`Expected profile ${expectedId}. Got ${id}.`);
         }
 
         profiles.push(name);
