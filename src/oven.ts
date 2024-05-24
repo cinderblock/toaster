@@ -511,7 +511,7 @@ async function recoverCommunications() {
 
   logger.info('Starting oven communications...');
 
-  run();
+  await run();
 
   await sleep(500);
 
