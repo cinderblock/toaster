@@ -267,29 +267,6 @@ function setDataHandling(enabled: boolean) {
   }
 }
 
-async function getResponseLine(timeout = 1000) {
-  return new Promise<string | undefined>((resolve, reject) => {
-    let to: NodeJS.Timeout;
-
-    function done(line: string | undefined) {
-      clearTimeout(to);
-      parser.removeListener('data', getResponse);
-      resolve(line);
-    }
-
-    function getResponse(line: string) {
-      done(line);
-    }
-
-    parser.on('data', getResponse);
-
-    to = setTimeout(() => {
-      logger.warn('Timeout waiting for response');
-      done(undefined);
-    }, timeout);
-  });
-}
-
 async function sendCommandGetResponse(
   command: Command,
   lineHandler: (line: string) => boolean | void,
