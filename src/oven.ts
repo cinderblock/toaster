@@ -473,7 +473,7 @@ async function recoverCommunications() {
   // Start printing values during standby
   await sendCommand('quiet');
 
-  const res = await Promise.race([outputting.next(true), sleep(5000).then(() => false as false)]);
+  const res = await Promise.race([outputting.next(true), sleep(5000).then(() => false)]);
 
   if (!res) {
     logger.error('Failed to start oven communications?');
