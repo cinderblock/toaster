@@ -669,3 +669,4 @@ export async function resetToKnownState() {
 }
 
 // cSpell:ignore setpoint
+// cSpell:ignore EEPROM EXTR
