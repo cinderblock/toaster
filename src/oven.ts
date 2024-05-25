@@ -71,9 +71,11 @@ const outputPatterns = {
     coldJ: null,
     mode: ['STANDBY', 'REFLOW', 'BAKE'],
   }),
+  version: /T-962-controller open source firmware \((?<version>v\d+.\d+.\d+)\)/,
 };
 
 const outputting = new SwitchPromise();
+const version = new SwitchPromise<string | undefined>();
 
 let responseLineHandler: ((line: string) => void) | undefined;
 
@@ -84,6 +86,7 @@ function handleLine(line: string) {
   }
 
   if (testRegularUpdate(line)) return;
+  if (testVersion(line)) return;
 
   // If there currently is a response line handler, pass the line to it.
   if (responseLineHandler) {
@@ -122,8 +125,17 @@ function testRegularUpdate(line: string) {
 
     return true;
   }
+}
 
+function testVersion(line: string) {
+  const match = outputPatterns.version.exec(line);
+  if (!match?.groups) return false;
 
+  version.set(match.groups.version);
+  return true;
+}
+
+function startup(line: string) {
   // Example output lines from v0.5.2 startup:
   /*
   See https://github.com/UnifiedEngineering/T-962-improvement for more details.
@@ -421,7 +433,11 @@ async function recoverCommunications() {
 
     // TODO: Ask for the current version and confirm that way instead of resetting/assuming it's good based on the line format.
 
-    const output = await Promise.race([outputting.next(true), sleep(5000).then(() => false)]);
+    const output = await Promise.race([
+      // version.next('v0.5.2').then(v => 2),
+      outputting.next(true).then(v => 1),
+      sleep(5000).then(() => 0),
+    ]);
 
     if (output) {
       logger.info('Successfully recovered oven state');

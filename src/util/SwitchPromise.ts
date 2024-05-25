@@ -2,61 +2,66 @@
  * Create a thing that acts like a switch.
  *
  * You can await a particular state change, or the next state change, or trigger the next state change.
+ *
+ * @note I have a feeling I just recreated Generators...
  */
+export class SwitchPromise<T = boolean> {
+  private resolve: (v: T) => void;
+  private change: Promise<T>;
 
-export class SwitchPromise {
-  private resolve: (value: boolean) => void;
-  private change: Promise<boolean>;
-
-  constructor(private enabled?: boolean) {
+  constructor(private value?: T) {
     // Prevent warning about missing initializer
     this.resolve = () => {
       throw new Error('resolve is not defined?');
     };
 
     // Create a new promise for the next state change
-    this.change = new Promise<boolean>(resolve => (this.resolve = resolve));
+    this.change = new Promise(resolve => (this.resolve = resolve));
   }
 
   /**
-   * Sets or toggles the state
-   * @param enabled New state
+   * Sets the state
+   * @param next New state
    * @returns previous state
    */
-  set(enabled: undefined | boolean = undefined) {
-    if (enabled !== undefined && enabled === this.enabled) return enabled;
+  set(next: T) {
+    if (next === this.value) return next;
 
     // Save the old state
     const res = this.resolve;
-    const old = this.enabled;
+    const old = this.value;
 
     // Create a new promise
-    this.change = new Promise<boolean>(resolve => (this.resolve = resolve));
+    this.change = new Promise(resolve => (this.resolve = resolve));
 
     // Update the state
-    this.enabled = !old;
+    this.value = next;
 
     // Resolve the old promise with the current state
-    res(this.enabled);
+    res(this.value);
 
     return old;
+  }
+
+  get() {
+    return this.value;
   }
 
   /**
    * Await the next state change
    */
-  next(): Promise<boolean>;
+  async next(): Promise<T>;
   /**
-   * Await the next state change to enabled, or return now if already enabled
+   * Await the next state change to a specific value, or return now if already that value
    */
-  next(enabled: true): Promise<true>;
-  /**
-   * Await the next state change to disabled, or return now if already disabled
-   */
-  next(enabled: false): Promise<false>;
-  next(enabled: undefined | boolean = undefined) {
-    if (enabled !== undefined && enabled === this.enabled) return enabled;
+  async next(value: T): Promise<T>;
+  async next(value?: T) {
+    if (!arguments.length) return this.change;
 
-    return this.change;
+    if (value === this.value) return value;
+
+    await this.change;
+
+    return this.next(value!);
   }
 }
