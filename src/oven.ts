@@ -83,6 +83,18 @@ function handleLine(line: string) {
     return;
   }
 
+  if (testRegularUpdate(line)) return;
+
+  // If there currently is a response line handler, pass the line to it.
+  if (responseLineHandler) {
+    responseLineHandler(line);
+    return;
+  }
+
+  logger.debug(line);
+}
+
+function testRegularUpdate(line: string) {
   const match = outputPatterns.update.exec(line);
   if (match?.groups) {
     // logger.info(line);
@@ -108,16 +120,9 @@ function handleLine(line: string) {
       logger.error(e);
     }
 
-    return;
+    return true;
   }
 
-  logger.debug(line);
-
-  // If there currently is a response line handler, pass the line to it.
-  if (responseLineHandler) {
-    responseLineHandler(line);
-    return;
-  }
 
   // Example output lines from v0.5.2 startup:
   /*
