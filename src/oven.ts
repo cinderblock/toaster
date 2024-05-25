@@ -446,7 +446,7 @@ async function recoverCommunications() {
 
     logger.info('Failed to recover oven state');
 
-    setDataHandling(false);
+    // setDataHandling(false);
   }
 
   await resetToKnownState();
@@ -483,47 +483,12 @@ export async function resetToKnownState() {
   outputting.set(false);
 
   // First, let's make sure we're running the latest version.
-  const version = await new Promise<string | void>(async resolve => {
-    let timeout: NodeJS.Timeout;
-
-    // Cleanup and resolve
-    function done(version?: string) {
-      clearTimeout(timeout);
-      parser.removeListener('data', getVersion);
-      resolve(version);
-    }
-
-    function getVersion(line: string) {
-      // extract version number
-      const match = line.match(/T-962-controller open source firmware \((?<version>v\d+.\d+.\d+)\)/);
-
-      if (!match?.groups) {
-        logger.debug(`Received: ${line}`);
-        return;
-      }
-
-      const { version } = match.groups;
-
-      logger.info(`Found version ${version}`);
-
-      done(version);
-    }
-
-    parser.on('data', getVersion);
-
-    logger.debug('Sending about command...');
-    sendCommand('about');
-
-    // Wait for response
-    timeout = setTimeout(() => {
-      logger.warn('Timeout waiting for version');
-      done();
-    }, 1000);
-  });
+  const v = version.get() || (await version.next());
 
   // TODO: Load latest firmware from github
-  if (version !== 'v0.5.2') {
+  if (v !== 'v0.5.2') {
     logger.info('Updating to latest firmware...');
+    setDataHandling(false);
 
     const isp = new flasher.InSystemProgramming(path, programmingBaudRate, programmingClockFrequency, logger);
 
@@ -598,6 +563,7 @@ export async function resetToKnownState() {
 
     // Re-open user port
     await new Promise<void>((resolve, reject) => port.open(err => (err ? reject(err) : resolve())));
+    setDataHandling(true);
   }
 }
 
