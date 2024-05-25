@@ -13,6 +13,7 @@ import {} from './main.js';
 import { handleUpdate } from './main.js';
 import { tmpdir } from 'os';
 import { newWatchdogPromise } from './util/Watchdog.js';
+import { simpleRegExpCSV } from './util/simpleRegExpCSV.js';
 
 // "# Time,  Temp0, Temp1, Temp2, Temp3,  Set,Actual, Heat, Fan,  ColdJ, Mode"
 // "   0.0,   31.5,  44.1,   0.0,   0.0,   50,  37.8,    0,   0,   31.5, STANDBY"
@@ -57,8 +58,19 @@ export function isInterruptedReflow(update: UpdateFromDevice): update is Interru
 }
 
 const outputPatterns = {
-  update:
-    /^\s*(?<time>[^\s,]+),\s*(?<temp0>[^\s,]+),\s*(?<temp1>[^\s,]+),\s*(?<temp2>[^\s,]+),\s*(?<temp3>[^\s,]+),\s*(?<set>[^\s,]+),\s*(?<actual>[^\s,]+),\s*(?<heat>[^\s,]+),\s*(?<fan>[^\s,]+),\s*(?<coldJ>[^\s,]+),\s*(?<mode>STANDBY|REFLOW|BAKE)$/,
+  update: simpleRegExpCSV({
+    time: null,
+    temp0: null,
+    temp1: null,
+    temp2: null,
+    temp3: null,
+    set: null,
+    actual: null,
+    heat: null,
+    fan: null,
+    coldJ: null,
+    mode: ['STANDBY', 'REFLOW', 'BAKE'],
+  }),
 };
 
 const outputting = new SwitchPromise();
