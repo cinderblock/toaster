@@ -65,13 +65,15 @@ const handler: BuildAndDeploy = {
       // TODO: Test/handle reboot gracefully and reconnect
     }
 
-    let bin = await rdt.node.getPath();
+    let version = await rdt.node.getVersion();
 
-    if (!bin) {
+    if (!version || version.major < 20) {
       await rdt.node.install();
-      bin = await rdt.node.getPath();
-      if (!bin) throw new Error(`Failed to install node`);
     }
+
+    const bin = await rdt.node.getPath();
+
+    if (!bin) throw new Error(`Failed to install node`);
 
     const execStart = [bin];
 
