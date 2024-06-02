@@ -355,6 +355,9 @@ async function sendCommandGetResponse(
   responseLineHandler = undefined;
 }
 
+// Firmware only supports 7 profiles
+export type ProfileID = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
 async function getProfiles() {
   logger.debug('Getting profiles...');
 
