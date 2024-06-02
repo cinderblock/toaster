@@ -440,11 +440,11 @@ export async function setupOvenCommunications() {
   // await sendCommand('values');
   // await sendCommand('help');
 
-  console.log(await getProfiles());
+  logger.info(await getProfiles());
 
   await sleep(1000);
 
-  console.log(await getSettings());
+  logger.info(await getSettings());
 }
 
 async function recoverCommunications() {
