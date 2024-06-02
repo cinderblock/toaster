@@ -1,23 +1,38 @@
 import { State } from '../state';
-
+import { handleStateUpdate } from './state';
+import { handleUpdate } from './state';
 import { StatusUpdate } from '../oven';
 
+function isObject(value: any): value is object {
+  return typeof value === 'object' && value !== null;
+}
+
 function isStateUpdate(message: any): message is { state: State } {
+  if (!isObject(message)) return false;
+  if (!('state' in message)) return false;
+
   // TODO: actually validate the data
-  return typeof message === 'object' && message !== null && 'state' in message;
+  return true;
 }
 
 function isUpdate(message: any): message is { update: StatusUpdate } {
+  if (!isObject(message)) return false;
+  if (!('update' in message)) return false;
+
   // TODO: actually validate the data
-  return typeof message === 'object' && message !== null && 'update' in message;
+  return true;
 }
 
-// Temporary print function
-function updateToString(update: StatusUpdate) {
-  return Object.entries(update)
-    .map(([k, v]) => `${k}: ${v}`)
-    .join(', ');
-}
+/**
+ * EventTarget for client events
+ *
+ * Set the mode of the oven
+ *  setMode: BAKE | IDLE
+ *
+ * Start reflow profile
+ *  startProfile: 0 | 1 | 2 | 3 | 4 | 5 | 6
+ */
+export const clientEvents = new EventTarget();
 
 export async function setupWebSocket() {
   while (true) {
@@ -34,23 +49,34 @@ export async function setupWebSocket() {
         const payload = JSON.parse(json);
 
         if (isStateUpdate(payload)) {
-          const {
-            state: { status, activeProfile },
-          } = payload;
-          console.log('Received state update', status.length, activeProfile);
-          console.log('Status', updateToString(status[0]));
-        } else if (isUpdate(payload)) {
-          const { update } = payload;
-          console.log('Received update', updateToString(update));
-        } else {
-          console.error('Unknown message type', payload);
+          handleStateUpdate(payload);
+          return;
         }
+
+        if (isUpdate(payload)) {
+          handleUpdate(payload);
+          return;
+        }
+
+        console.error('Unknown message type', payload);
       };
 
       ws.onerror = reject;
       ws.onclose = resolve;
+
+      function sendMessage<T extends Object>(message: T) {
+        (message as any).timestamp = Date.now();
+        ws.send(JSON.stringify(message));
+      }
+
+      clientEvents.addEventListener('hello', name => sendMessage({ hello: name }));
+      clientEvents.addEventListener('setMode', mode => sendMessage({ setMode: mode }));
+      clientEvents.addEventListener('startProfile', profile => sendMessage({ startProfile: profile }));
     }).catch(e => {
       console.error('WebSocket error', e);
     });
+    // TODO: cleanup clientEvents listeners?
+
+    // TODO: exponential backoff
   }
 }

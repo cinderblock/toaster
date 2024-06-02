@@ -21,7 +21,8 @@ import { mainListItems, secondaryListItems } from './listItems';
 import Chart from './Chart';
 import Deposits from './Deposits';
 import Orders from './Orders';
-import { Button } from '@mui/material';
+import { Button, Chip } from '@mui/material';
+import { useLatestStatus, useStatusUpdates } from './state';
 
 function Footer(props: any) {
   return (
@@ -116,6 +117,17 @@ function DashboardContent() {
             <Typography component="h1" variant="h6" color="inherit" noWrap sx={{ flexGrow: 1 }}>
               Toaster Control
             </Typography>
+
+            <Chip label={new Date(useStatusUpdates(s => s?.realTime)).toLocaleTimeString()} color="success" />
+            <Chip label={useStatusUpdates(s => s?.temp0)?.toFixed(1)} color="success" />
+            <Chip label={useStatusUpdates(s => s?.temp1)?.toFixed(1)} color="success" />
+            <Chip label={useStatusUpdates(s => s?.temp2)?.toFixed(1)} color="success" />
+            <Chip label={useStatusUpdates(s => s?.temp3)?.toFixed(1)} color="success" />
+            <Chip label={useStatusUpdates(s => s?.set)?.toFixed(1)} color="success" />
+            <Chip
+              label={useStatusUpdates(s => s?.actual)?.toFixed(1)}
+              color={useStatusUpdates(s => s?.heat) ? 'error' : 'success'}
+            />
 
             <Button color="success" variant="contained">
               Bake
