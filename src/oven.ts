@@ -218,6 +218,28 @@ async function run() {
   pins.rst.digitalWrite(1);
 }
 
+/**
+ * Node.js generates system errors when exceptions occur within its runtime environment.
+ * These usually occur when an application violates an operating system constraint.
+ * For example, a system error will occur if an application attempts to read a file that does not exist.
+ * @see https://nodejs.org/docs/latest-v18.x/api/errors.html#class-systemerror
+ * @see https://github.com/nodejs/node/issues/46869
+ */
+interface SystemError extends Error {
+  address?: string; // If present, the address to which a network connection failed
+  code: string; // The string error code
+  dest?: string; // If present, the file path destination when reporting a file system error
+  errno: number; // The system-provided error number
+  info?: Object; // If present, extra details about the error condition
+  message: string; // A system-provided human-readable description of the error
+  path?: string; // If present, the file path when reporting a file system error
+  port?: number; // If present, the network connection port that is not available
+  syscall: string; // The name of the system call that triggered the error
+}
+function isSystemError(error: any): error is SystemError {
+  return (error as SystemError).errno !== undefined;
+}
+
 type SavedState = { version: string | undefined };
 const ovenStateFile = tmpdir() + '/oven-state.json';
 async function saveOvenState(state: SavedState) {
@@ -234,7 +256,8 @@ async function loadOvenState(): Promise<SavedState | undefined> {
 
     data = JSON.parse(f);
   } catch (e) {
-    logger.error('Error reading state file');
+    if (isSystemError(e) && e.code === 'ENOENT') return;
+    logger.error('Unexpected error reading state file');
     logger.error(e);
     return;
   }
