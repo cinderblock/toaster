@@ -325,7 +325,14 @@ async function sendCommand(command: Command, waitForSent = false) {
   );
 }
 
+let isEnabled: boolean | undefined;
 function setDataHandling(enabled: boolean) {
+  if (enabled === isEnabled) {
+    logger.warn(`Data handling already ${enabled ? 'enabled' : 'disabled'}`);
+    logger.warn(new Error().stack);
+    return;
+  }
+  isEnabled = enabled;
   if (enabled) {
     parser.on('data', handleLine);
   } else {
