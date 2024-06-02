@@ -470,13 +470,14 @@ export async function setupOvenCommunications() {
 async function recoverCommunications() {
   logger.debug('Setting up oven communications...');
 
+  setDataHandling(true);
+
   const state = await loadOvenState();
 
   if (state?.version === 'v0.5.2') {
     logger.info('Found saved oven state');
 
     // Loaded a good saved state. Let's try to use it.
-    setDataHandling(true);
 
     // TODO: Ask for the current version and confirm that way instead of resetting/assuming it's good based on the line format.
 
@@ -525,12 +526,25 @@ export async function resetToKnownState() {
 
   await saveOvenStateUnknown();
 
-  await reset();
+  logger.silly('Resetting oven hardware...');
+
+  await reset(false, true);
+
+  await sleep(50);
+
+  logger.silly('Clearing "outputting" flag and version info');
 
   outputting.set(false);
+  version.set(undefined);
+
+  logger.silly('Starting oven...');
+
+  run();
 
   // First, let's make sure we're running the latest version.
   const v = version.get() || (await version.next());
+
+  logger.info(`Current firmware version: ${v}`);
 
   // TODO: Load latest firmware from github
   if (v !== 'v0.5.2') {
