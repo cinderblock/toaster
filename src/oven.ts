@@ -57,6 +57,7 @@ export function isInterruptedReflow(update: UpdateFromDevice): update is Interru
   return update.type === 'interrupted';
 }
 
+// Stored externally for performance reasons. As an object to not clutter the global namespace.
 const outputPatterns = {
   update: simpleRegExpCSV({
     time: null,
