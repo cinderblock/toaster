@@ -194,7 +194,7 @@ const programmingClockFrequency = 11059;
 const runtimeBaudRate = 115200;
 
 // Time to hold reset low
-const resetDuration = 100;
+const resetDuration = 200;
 
 const pins = {
   isp: new Gpio(17, { mode: Gpio.OUTPUT }), // Yellow
@@ -205,16 +205,29 @@ const pins = {
 
 let resetState: Promise<void> | undefined;
 async function reset(bootloader = false, hold = false) {
+  logger.silly('Resetting oven...');
   if (!resetState) {
+    logger.silly('Not reset. Pull low and start timer.');
     pins.rst.digitalWrite(0);
     resetState = sleep(resetDuration);
   }
+
+  if (hold) {
+    logger.silly('Leaving reset low...');
+    return;
+  }
+
+  logger.silly('Running oven...');
+
+  return run(bootloader);
+}
+async function run(bootloader = false) {
+  logger.silly(`Bootloader: ${bootloader ? 'yes' : 'no'}`);
   pins.isp.digitalWrite(bootloader ? 0 : 1);
 
-  return run();
-}
-async function run() {
   await resetState;
+
+  logger.silly('Done waiting for reset. Running oven');
   resetState = undefined;
   pins.rst.digitalWrite(1);
 }
