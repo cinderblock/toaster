@@ -87,6 +87,9 @@ const handler: BuildAndDeploy = {
         },
         Service: {
           ExecStart: execStart.join(' '),
+          SendSIGKILL: false,
+          // Maximum bake time is 8 minutes
+          TimeoutStopSec: '8min 10s',
         },
         Install: {
           WantedBy: 'multi-user.target',

@@ -98,3 +98,39 @@ setupOvenCommunications().catch(err => {
   console.error(err);
   process.exitCode = 1;
 });
+
+function exitGracefully() {
+  const mode = state.status[0]?.mode;
+
+  switch (mode) {
+    // Don't quit if running a reflow profile (unless we get a second SIGINT?)
+    case 'REFLOW':
+      logger.info('Reflowing, press ctrl-c again to quit');
+      return;
+
+    case 'BAKE':
+      logger.info('Baking. Still quitting.');
+      break;
+
+    default:
+      logger.info(`Mode: ${mode}`);
+      break;
+  }
+
+  logger.info('Exiting');
+
+  // TODO: cleanup tasks and let Node exit
+  process.exit();
+}
+
+process.on('SIGINT', exitGracefully);
+process.on('SIGTERM', exitGracefully);
+process.on('SIGQUIT', exitGracefully);
+process.on('SIGHUP', exitGracefully);
+
+// Systemd also sends SIGCONT when killing process
+process.on('SIGCONT', () => {
+  logger.info('SIGCONT received, ignoring');
+});
+
+logger.info('Graceful exit handlers installed');

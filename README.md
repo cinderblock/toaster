@@ -27,6 +27,10 @@ A simple web dashboard for my SMT reflow oven (T-962 + Raspberry Pi)
    $null = New-Item -ItemType Junction -Path node_modules/@cinderblock/rdt -Value ~/path/to/rdt/.dist
    ```
 
+### Development Web Server
+
+`npm start` will start a [development web server on port 9001](http://localhost:9001).
+
 ## Hardware Connections
 
 Following the hardware improvements from [Unified Engineering](https://github.com/UnifiedEngineering/T-962-improvements), we also add a Raspberry Pi Zero W to the oven to control it.
